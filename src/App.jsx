@@ -272,7 +272,7 @@ export default function App() {
         const sessionPayload = await api("/api/session");
         if (sessionPayload.session) {
           setSession(sessionPayload.session);
-          setTab(sessionPayload.session.role === "admin" ? "dash" : "input");
+          setTab(sessionPayload.session.role === "be" ? "input" : "dash");
           const bootstrap = await api("/api/bootstrap");
           setData(bootstrap.data || {});
           setSession(bootstrap.session || sessionPayload.session);
@@ -308,7 +308,7 @@ export default function App() {
       const bootstrap = await api("/api/bootstrap");
       setData(bootstrap.data || {});
       setSession(bootstrap.session || nextSession);
-      setTab(nextSession.role === "admin" ? "dash" : "input");
+      setTab(nextSession.role === "be" ? "input" : "dash");
       setLoginErr("");
       setPinInput("");
 
@@ -615,7 +615,9 @@ export default function App() {
 
   const visibleTabs = session.role === "admin"
     ? [["dash","🏠 Dashboard Nasional"],["epis","🏪 Per EPI Store"],["reward","🏆 Reward"],["input","✍️ Input Realisasi"],["import","📥 Import Data"],["access","🔐 Akses & PIN"],["setup","⚙️ Skema"]]
-    : [["input","✍️ Input Realisasi"],["dash","🏠 Dashboard Nasional"],["epis","🏪 Per EPI Store"],["reward","🏆 Reward"],["setup","⚙️ Skema"]];
+    : session.role === "viewer"
+      ? [["dash","🏠 Dashboard Nasional"],["epis","🏪 Per EPI Store"],["reward","🏆 Reward"]]
+      : [["input","✍️ Input Realisasi"],["dash","🏠 Dashboard Nasional"],["epis","🏪 Per EPI Store"],["reward","🏆 Reward"],["setup","⚙️ Skema"]];
 
   return (
     <div style={S.wrap}>
@@ -631,7 +633,7 @@ export default function App() {
         </div>
         <div style={{textAlign:"right", flexShrink:0}}>
           <div style={{fontSize:12, color:"#d4af37", fontWeight:800}}>{session.name}</div>
-          <div style={{fontSize:10, color:"#94a3b8", marginBottom:6}}>{session.role === "admin" ? "Administrator" : "Brand Executive"}</div>
+          <div style={{fontSize:10, color:"#94a3b8", marginBottom:6}}>{session.role === "admin" ? "Administrator" : session.role === "viewer" ? "Manajemen — Hanya Lihat" : "Brand Executive"}</div>
           <button style={S.btnGhost} onClick={logout}>Keluar</button>
         </div>
       </div>
@@ -644,7 +646,7 @@ export default function App() {
 
       <div style={S.body}>
         {/* ============ INPUT TAB ============ */}
-        {tab === "input" && (
+        {tab === "input" && session.role !== "viewer" && (
           <div>
             <div style={S.card}>
               <div style={{fontWeight:800, fontSize:15, marginBottom:10, color:"#d4af37"}}>Form Submit Realisasi Bulanan</div>
@@ -1063,12 +1065,13 @@ export default function App() {
                   <label style={S.label}>Peran</label>
                   <select style={S.select} value={newUserRole} onChange={e => setNewUserRole(e.target.value)}>
                     <option value="be">Brand Executive</option>
+                    <option value="viewer">Manajemen (Hanya Lihat)</option>
                     <option value="admin">Administrator</option>
                   </select>
                 </div>
                 <div>
                   <label style={S.label}>Penugasan Brand</label>
-                  <select style={S.select} value={newUserBrand} disabled={newUserRole === "admin"} onChange={e => setNewUserBrand(e.target.value)}>
+                  <select style={S.select} value={newUserBrand} disabled={newUserRole !== "be"} onChange={e => setNewUserBrand(e.target.value)}>
                     {BRANDS.map((brand) => <option key={brand.code} value={brand.code}>{brand.name}</option>)}
                   </select>
                 </div>
@@ -1092,6 +1095,7 @@ export default function App() {
                         <td style={S.td}>
                           <select style={{...S.select, minWidth:130}} value={user.role} disabled={user.id === session.id} onChange={e => updateUserField(user.id, "role", e.target.value)}>
                             <option value="be">Brand Executive</option>
+                            <option value="viewer">Manajemen</option>
                             <option value="admin">Administrator</option>
                           </select>
                         </td>
@@ -1099,7 +1103,7 @@ export default function App() {
                           <select
                             style={{...S.select, minWidth:220}}
                             value={user.brandCodes[0] ?? ""}
-                            disabled={user.role === "admin"}
+                            disabled={user.role !== "be"}
                             onChange={e => updateUserField(user.id, "brandCodes", e.target.value === "" ? [] : [e.target.value])}
                           >
                             <option value="">Belum ditugaskan</option>

@@ -75,6 +75,13 @@ const requireAdmin = (req, res, next) => {
   next();
 };
 
+const requireWriter = (req, res, next) => {
+  if (!["admin", "be"].includes(req.user?.role)) {
+    return res.status(403).json({ message: "Akun ini hanya memiliki akses lihat." });
+  }
+  next();
+};
+
 const isValidPin = (pin) => /^\d{4,6}$/.test(pin);
 const normalizeAmount = (value) => {
   const amount = Number(value);
@@ -192,7 +199,7 @@ app.get("/api/bootstrap", requireAuth, async (req, res, next) => {
   }
 });
 
-app.put("/api/realisations/:storeIndex/:monthIndex", requireAuth, async (req, res, next) => {
+app.put("/api/realisations/:storeIndex/:monthIndex", requireAuth, requireWriter, async (req, res, next) => {
   const storeIndex = Number(req.params.storeIndex);
   const monthIndex = Number(req.params.monthIndex);
   const g = normalizeAmount(req.body.g);
@@ -391,7 +398,7 @@ app.get("/api/users", requireAuth, requireAdmin, async (_req, res, next) => {
 app.post("/api/users", requireAuth, requireAdmin, async (req, res, next) => {
   const name = String(req.body.name || "").trim().slice(0, 120);
   const pin = String(req.body.pin || "").trim();
-  const role = req.body.role === "admin" ? "admin" : "be";
+  const role = ["admin", "be", "viewer"].includes(req.body.role) ? req.body.role : "be";
   const brandCodes = normalizeBrandCodes(req.body.brandCodes);
 
   if (!name || !isValidPin(pin)) {
@@ -442,7 +449,7 @@ app.patch("/api/users/:id", requireAuth, requireAdmin, async (req, res, next) =>
   const userId = Number(req.params.id);
   const name = String(req.body.name || "").trim().slice(0, 120);
   const pin = String(req.body.pin || "").trim();
-  const role = req.body.role === "admin" ? "admin" : "be";
+  const role = ["admin", "be", "viewer"].includes(req.body.role) ? req.body.role : "be";
   const isActive = req.body.isActive !== false;
   const brandCodes = normalizeBrandCodes(req.body.brandCodes);
 

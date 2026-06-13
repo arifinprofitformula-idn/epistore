@@ -15,6 +15,7 @@ Aplikasi multi-user untuk input realisasi, dashboard performa, perhitungan rewar
 
 - **Administrator** dapat melihat seluruh data, mengimpor CSV, serta membuat dan mengubah akun.
 - **Brand Executive** dapat memilih seluruh EPI Store, tetapi hanya dapat mengubah realisasi brand yang ditugaskan: GOLDGRAM, MEEZAN GOLD, atau SILVERGRAM.
+- **Manajemen (viewer)** hanya dapat melihat Dashboard Nasional, Per EPI Store, dan Reward tanpa akses input maupun administrasi.
 - Seluruh pengguna terautentikasi dapat membaca data semua EPIS. Penugasan brand hanya membatasi kolom yang boleh diubah, bukan data yang boleh dilihat.
 - Identitas submitter diambil dari sesi server, bukan dari data browser.
 - Perubahan realisasi dan akun dicatat pada tabel `audit_logs`.
@@ -166,6 +167,7 @@ https://dashboardepis.arvadigital.web.id/setup.html
 Masukkan `install_key`. Installer membuat tabel, 28 store, data awal, admin `9999`, dan BE demo `1234`. Setelah berhasil, ganti `install_key` pada konfigurasi dan segera ubah PIN akun awal.
 
 Installer juga menjalankan migrasi penugasan brand. Pengguna BE lama yang belum memiliki penugasan brand akan diberi GOLDGRAM sebagai nilai awal; administrator kemudian dapat menggantinya melalui menu **Akses & PIN**.
+Installer memperbarui kolom role agar mendukung akun `viewer` untuk manajemen tanpa menghapus akun atau realisasi yang sudah ada.
 
 ### 6. Update Berikutnya
 

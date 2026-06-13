@@ -43,13 +43,16 @@ export async function initializeDatabase() {
     CREATE TABLE IF NOT EXISTS users (
       id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
       name VARCHAR(120) NOT NULL,
-      role ENUM('admin', 'be') NOT NULL DEFAULT 'be',
+      role ENUM('admin', 'be', 'viewer') NOT NULL DEFAULT 'be',
       pin_hash VARCHAR(255) NOT NULL,
       is_active BOOLEAN NOT NULL DEFAULT TRUE,
       created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     ) ENGINE=InnoDB
   `);
+  await pool.query(
+    "ALTER TABLE users MODIFY role ENUM('admin', 'be', 'viewer') NOT NULL DEFAULT 'be'",
+  );
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS stores (

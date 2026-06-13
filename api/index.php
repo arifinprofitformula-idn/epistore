@@ -39,6 +39,7 @@ try {
     }
 
     if ($method === 'PUT' && preg_match('#^/realisations/(\d+)/(\d+)$#', $path, $matches)) {
+        require_writer($user);
         save_realisation($user, (int) $matches[1], (int) $matches[2]);
     }
 
@@ -85,6 +86,10 @@ function install_application(): never
         throw new RuntimeException('Schema database tidak ditemukan.');
     }
     $pdo->exec($schema);
+    $pdo->exec(
+        "ALTER TABLE users
+         MODIFY role ENUM('admin', 'be', 'viewer') NOT NULL DEFAULT 'be'"
+    );
 
     $master = json_decode(
         (string) file_get_contents(dirname(__DIR__) . '/server/master-data.json'),
@@ -449,10 +454,11 @@ function assert_unique_pin(PDO $pdo, string $pin, ?int $exceptUserId = null): vo
 
 function create_user(array $admin): never
 {
+    ensure_user_roles_schema();
     $body = request_body();
     $name = mb_substr(trim((string) ($body['name'] ?? '')), 0, 120);
     $pin = trim((string) ($body['pin'] ?? ''));
-    $role = ($body['role'] ?? '') === 'admin' ? 'admin' : 'be';
+    $role = normalize_role($body['role'] ?? 'be');
     $brands = normalize_brand_codes($body['brandCodes'] ?? []);
     if ($name === '' || !valid_pin($pin)) {
         json_response(['message' => 'Nama dan PIN 4-6 digit wajib diisi.'], 400);
@@ -483,10 +489,11 @@ function create_user(array $admin): never
 
 function update_user(array $admin, int $userId): never
 {
+    ensure_user_roles_schema();
     $body = request_body();
     $name = mb_substr(trim((string) ($body['name'] ?? '')), 0, 120);
     $pin = trim((string) ($body['pin'] ?? ''));
-    $role = ($body['role'] ?? '') === 'admin' ? 'admin' : 'be';
+    $role = normalize_role($body['role'] ?? 'be');
     $isActive = ($body['isActive'] ?? true) !== false;
     $brands = normalize_brand_codes($body['brandCodes'] ?? []);
     if ($name === '' || ($pin !== '' && !valid_pin($pin))) {

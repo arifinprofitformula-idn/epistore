@@ -154,6 +154,13 @@ function require_admin(array $user): void
     }
 }
 
+function require_writer(array $user): void
+{
+    if (!in_array($user['role'], ['admin', 'be'], true)) {
+        json_response(['message' => 'Akun ini hanya memiliki akses lihat.'], 403);
+    }
+}
+
 function valid_pin(string $pin): bool
 {
     return preg_match('/^\d{4,6}$/', $pin) === 1;
@@ -169,6 +176,20 @@ function normalize_brand_codes(mixed $values): array
         array_map('strval', $values),
         static fn (string $value): bool => in_array($value, $allowed, true),
     )));
+}
+
+function normalize_role(mixed $value): string
+{
+    $role = (string) $value;
+    return in_array($role, ['admin', 'be', 'viewer'], true) ? $role : 'be';
+}
+
+function ensure_user_roles_schema(): void
+{
+    db()->exec(
+        "ALTER TABLE users
+         MODIFY role ENUM('admin', 'be', 'viewer') NOT NULL DEFAULT 'be'"
+    );
 }
 
 function amount(mixed $value): int

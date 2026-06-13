@@ -155,6 +155,7 @@ app.post("/api/logout", (req, res, next) => {
 
 app.get("/api/bootstrap", requireAuth, async (req, res, next) => {
   try {
+    // Read access is global: every authenticated user receives every EPIS realisation.
     const [rows] = await pool.query(
       `SELECT
         s.store_code AS storeIndex,
@@ -176,7 +177,16 @@ app.get("/api/bootstrap", requireAuth, async (req, res, next) => {
         { g: row.g, m: row.m, s: row.s, note: row.note || "", be: row.be, ts: row.ts },
       ]),
     );
-    res.json({ data, session: req.user });
+    res.json({
+      data,
+      session: req.user,
+      access: {
+        canReadAllStores: true,
+        writableBrandCodes: req.user.role === "admin"
+          ? allowedBrandCodes
+          : req.user.brandCodes,
+      },
+    });
   } catch (error) {
     next(error);
   }

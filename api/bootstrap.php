@@ -105,6 +105,7 @@ function session_user(bool $required = true): ?array
         return null;
     }
 
+    ensure_user_brands_schema();
     $brands = db()->prepare(
         'SELECT brand_code
          FROM user_brands
@@ -115,7 +116,35 @@ function session_user(bool $required = true): ?array
     $user['id'] = (int) $user['id'];
     $user['isActive'] = (bool) $user['isActive'];
     $user['brandCodes'] = $brands->fetchAll(PDO::FETCH_COLUMN);
+    $user['canReadAllStores'] = true;
     return $user;
+}
+
+function ensure_user_brands_schema(): void
+{
+    static $ready = false;
+    if ($ready) {
+        return;
+    }
+
+    db()->exec(
+        "CREATE TABLE IF NOT EXISTS user_brands (
+           user_id BIGINT UNSIGNED NOT NULL,
+           brand_code ENUM('goldgram', 'meezan_gold', 'silvergram') NOT NULL,
+           PRIMARY KEY (user_id, brand_code),
+           CONSTRAINT fk_php_user_brands_user
+             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+    );
+    db()->exec(
+        "INSERT IGNORE INTO user_brands (user_id, brand_code)
+         SELECT id, 'goldgram' FROM users
+         WHERE role = 'be'
+           AND NOT EXISTS (
+             SELECT 1 FROM user_brands ub WHERE ub.user_id = users.id
+           )"
+    );
+    $ready = true;
 }
 
 function require_admin(array $user): void

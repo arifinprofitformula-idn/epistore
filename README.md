@@ -15,6 +15,7 @@ Aplikasi multi-user untuk input realisasi, dashboard performa, perhitungan rewar
 
 - **Administrator** dapat melihat seluruh data, mengimpor CSV, serta membuat dan mengubah akun.
 - **Brand Executive** dapat memilih seluruh EPI Store, tetapi hanya dapat mengubah realisasi brand yang ditugaskan: GOLDGRAM, MEEZAN GOLD, atau SILVERGRAM.
+- Seluruh pengguna terautentikasi dapat membaca data semua EPIS. Penugasan brand hanya membatasi kolom yang boleh diubah, bukan data yang boleh dilihat.
 - Identitas submitter diambil dari sesi server, bukan dari data browser.
 - Perubahan realisasi dan akun dicatat pada tabel `audit_logs`.
 

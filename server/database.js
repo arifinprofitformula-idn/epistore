@@ -225,5 +225,6 @@ export async function getSessionUser(userId) {
     name: user.name,
     role: user.role,
     brandCodes: brands.map((brand) => brand.brandCode),
+    canReadAllStores: true,
   };
 }

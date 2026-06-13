@@ -212,6 +212,7 @@ function login(): never
 
 function bootstrap_data(array $user): never
 {
+    // Read access is global: every authenticated user receives every EPIS realisation.
     $statement = db()->prepare(
         'SELECT
            s.store_code AS storeIndex,
@@ -239,7 +240,16 @@ function bootstrap_data(array $user): never
             'ts' => $row['ts'],
         ];
     }
-    json_response(['data' => $data, 'session' => $user]);
+    json_response([
+        'data' => $data,
+        'session' => $user,
+        'access' => [
+            'canReadAllStores' => true,
+            'writableBrandCodes' => $user['role'] === 'admin'
+                ? ['goldgram', 'meezan_gold', 'silvergram']
+                : $user['brandCodes'],
+        ],
+    ]);
 }
 
 function save_realisation(array $user, int $storeIndex, int $monthIndex): never

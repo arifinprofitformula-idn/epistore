@@ -48,9 +48,9 @@ const PERAK_TIERS = [
 ];
 
 const BRANDS = [
-  { code: "goldgram", name: "GOLDGRAM", field: "g" },
-  { code: "meezan_gold", name: "MEEZAN GOLD", field: "m" },
-  { code: "silvergram", name: "SILVERGRAM", field: "s" },
+  { code: "goldgram", name: "GOLDGRAM", field: "g", targetField: "tg", realField: "rg", color: "#fbbf24", gradient: "linear-gradient(135deg,#b8860b,#f5d78e)" },
+  { code: "meezan_gold", name: "MEEZAN GOLD", field: "m", targetField: "tm", realField: "rm", color: "#86efac", gradient: "linear-gradient(135deg,#0f3d2e,#4a7a5e)" },
+  { code: "silvergram", name: "SILVERGRAM", field: "s", targetField: "ts", realField: "rs", color: "#cbd5e1", gradient: "linear-gradient(135deg,#64748b,#e2e8f0)" },
 ];
 
 // Realisasi Jan-Mei 2026, full 25 EPI Store (sumber: Realisasi_Input_Jan_Mei_Import_EPI_RECHECK.csv)
@@ -274,7 +274,8 @@ export default function App() {
           setSession(sessionPayload.session);
           setTab(sessionPayload.session.role === "admin" ? "dash" : "input");
           const bootstrap = await api("/api/bootstrap");
-          setData(bootstrap.data);
+          setData(bootstrap.data || {});
+          setSession(bootstrap.session || sessionPayload.session);
 
           if (sessionPayload.session.role === "admin") await loadUsers();
         }
@@ -305,8 +306,8 @@ export default function App() {
       });
       const nextSession = loginPayload.session;
       const bootstrap = await api("/api/bootstrap");
-      setData(bootstrap.data);
-      setSession(nextSession);
+      setData(bootstrap.data || {});
+      setSession(bootstrap.session || nextSession);
       setTab(nextSession.role === "admin" ? "dash" : "input");
       setLoginErr("");
       setPinInput("");
@@ -407,6 +408,20 @@ export default function App() {
     }
     return { totReal, totTarget, totReward, emasReward, perakReward, lolos, ytdT, ytdR, ytdRw, ytdAch: ytdT > 0 ? ytdR/ytdT*100 : 0 };
   }, [data, dMonth]);
+
+  const dashBrandKPI = useMemo(() => {
+    return BRANDS.map((brand) => {
+      const target = dashRows.reduce((total, row) => total + row[brand.targetField], 0);
+      const real = dashRows.reduce((total, row) => total + row[brand.realField], 0);
+      return {
+        ...brand,
+        target,
+        real,
+        gap: real - target,
+        achievement: target > 0 ? real / target * 100 : 0,
+      };
+    });
+  }, [dashRows]);
 
   // ===== PER EPIS =====
   const episRows = useMemo(() => MONTHS.map((_, mi) => getRow(pStore, mi)), [data, pStore]);
@@ -619,7 +634,12 @@ export default function App() {
           <div>
             <div style={S.card}>
               <div style={{fontWeight:800, fontSize:15, marginBottom:10, color:"#d4af37"}}>Form Submit Realisasi Bulanan</div>
-              <div style={{fontSize:12, color:"#94a3b8", marginBottom:10}}>Login sebagai: <b style={{color:"#e2e8f0"}}>{session.name}</b></div>
+              <div style={{fontSize:12, color:"#94a3b8", marginBottom:10}}>
+                Login sebagai: <b style={{color:"#e2e8f0"}}>{session.name}</b>
+                {session.role === "be" && (
+                  <span> | Brand: <b style={{color:"#d4af37"}}>{BRANDS.filter(brand => assignedBrandCodes.includes(brand.code)).map(brand => brand.name).join(", ") || "Belum ditugaskan"}</b></span>
+                )}
+              </div>
               <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:10}}>
                 <div>
                   <label style={S.label}>EPI Store</label>
@@ -680,7 +700,7 @@ export default function App() {
             </div>
             <div style={S.card}>
               <div style={{fontSize:12, color:"#94a3b8"}}>
-                Data tersimpan terpusat. Anda dapat memilih semua EPI Store, tetapi hanya kolom brand yang ditugaskan kepada akun Anda yang dapat diubah.
+                Seluruh data EPIS dapat dibaca oleh semua pengguna. Anda dapat memilih semua EPI Store, tetapi hanya kolom brand yang ditugaskan kepada akun Anda yang dapat diubah.
               </div>
             </div>
           </div>
@@ -709,6 +729,43 @@ export default function App() {
               <div style={S.kpi}><div style={S.label}>Reward Cair {MONTHS[dMonth]}</div><div style={{...S.kpiV, color:"#d4af37"}}>{fmt(dashKPI.totReward)}</div><div style={{fontSize:11,color:"#94a3b8"}}>Emas {fmt(dashKPI.emasReward)} | Perak {fmt(dashKPI.perakReward)}</div></div>
               <div style={S.kpi}><div style={S.label}>EPIS Lolos Reward</div><div style={S.kpiV}>{dashKPI.lolos} <span style={{fontSize:12,color:"#94a3b8"}}>/ 28</span></div></div>
               <div style={S.kpi}><div style={S.label}>YTD s.d. {MONTHS[dMonth]}</div><div style={S.kpiV}>{pct(dashKPI.ytdAch)}</div><div style={{fontSize:11,color:"#94a3b8"}}>{fmtS(dashKPI.ytdR)} / {fmtS(dashKPI.ytdT)} | Reward YTD: {fmtS(dashKPI.ytdRw)}</div></div>
+            </div>
+
+            <div style={{...S.card, padding:12}}>
+              <div style={{fontSize:14, fontWeight:800, color:"#e2e8f0", marginBottom:10}}>
+                Perolehan Omzet per Brand — {MONTHS[dMonth]}
+                <span style={{fontSize:11, color:"#94a3b8", fontWeight:500, marginLeft:6}}>({dSeg === "ALL" ? "Seluruh Segmentasi" : dSeg})</span>
+              </div>
+              <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(230px,1fr))", gap:10}}>
+                {dashBrandKPI.map((brand) => {
+                  const positive = brand.gap >= 0;
+                  const progress = Math.min(Math.max(brand.achievement, 0), 100);
+                  return (
+                    <div key={brand.code} style={{background:"#0f172a", border:"1px solid #334155", borderRadius:10, padding:12}}>
+                      <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", gap:8, marginBottom:10}}>
+                        <span style={{fontSize:10, fontWeight:800, padding:"3px 9px", borderRadius:99, background:brand.gradient, color:brand.code === "goldgram" ? "#1a1200" : brand.code === "silvergram" ? "#0f172a" : "#f5d78e"}}>{brand.name}</span>
+                        <span style={{fontSize:16, fontWeight:800, color:brand.achievement >= 100 ? "#4ade80" : brand.achievement >= 75 ? "#60a5fa" : "#f87171"}}>{pct(brand.achievement)}</span>
+                      </div>
+                      <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:10}}>
+                        <div>
+                          <div style={{fontSize:10, color:"#64748b", marginBottom:2}}>TARGET BULAN</div>
+                          <div style={{fontSize:14, fontWeight:700}}>{fmtS(brand.target)}</div>
+                        </div>
+                        <div>
+                          <div style={{fontSize:10, color:"#64748b", marginBottom:2}}>REALISASI OMZET</div>
+                          <div style={{fontSize:14, fontWeight:800, color:brand.color}}>{fmtS(brand.real)}</div>
+                        </div>
+                      </div>
+                      <div style={{height:7, borderRadius:99, background:"#1e293b", overflow:"hidden", marginBottom:8}}>
+                        <div style={{height:"100%", width:`${progress}%`, borderRadius:99, background:brand.gradient}} />
+                      </div>
+                      <div style={{fontSize:11, color:positive ? "#4ade80" : "#f87171"}}>
+                        {positive ? "Surplus" : "Gap"}: {fmtS(Math.abs(brand.gap))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
             <div style={{...S.card, overflowX:"auto", padding:8}}>

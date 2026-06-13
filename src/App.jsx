@@ -432,6 +432,20 @@ export default function App() {
     return { t, r, rw, ach: t > 0 ? r/t*100 : 0 };
   }, [episRows]);
 
+  const episBrandKPI = useMemo(() => {
+    return BRANDS.map((brand) => {
+      const target = episRows.reduce((total, row) => total + row[brand.targetField], 0);
+      const real = episRows.reduce((total, row) => total + row[brand.realField], 0);
+      return {
+        ...brand,
+        target,
+        real,
+        gap: real - target,
+        achievement: target > 0 ? real / target * 100 : 0,
+      };
+    });
+  }, [episRows]);
+
   // ===== REWARD TAB =====
   const rewardRows = useMemo(() => STORES.map((_, i) => getRow(i, rMonth)).sort((a, b) => b.totalReward - a.totalReward), [data, rMonth]);
   const rewardYTD = useMemo(() => {
@@ -820,6 +834,45 @@ export default function App() {
               <div style={S.kpi}><div style={S.label}>Realisasi Tahun</div><div style={S.kpiV}>{fmtS(episYr.r)}</div></div>
               <div style={S.kpi}><div style={S.label}>Ach Tahun</div><div style={{...S.kpiV, color: episYr.ach>=100?"#4ade80":episYr.ach>=75?"#60a5fa":"#f87171"}}>{pct(episYr.ach)}</div></div>
               <div style={S.kpi}><div style={S.label}>Total Reward Tahun</div><div style={{...S.kpiV, color:"#d4af37"}}>{fmt(episYr.rw)}</div></div>
+            </div>
+
+            <div style={{...S.card, padding:12}}>
+              <div style={{fontSize:14, fontWeight:800, color:"#e2e8f0", marginBottom:4}}>
+                Pencapaian Omzet per Brand
+              </div>
+              <div style={{fontSize:11, color:"#94a3b8", marginBottom:10}}>
+                {STORES[pStore].n} — akumulasi realisasi yang telah tercatat dibanding target tahunan
+              </div>
+              <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(230px,1fr))", gap:10}}>
+                {episBrandKPI.map((brand) => {
+                  const positive = brand.gap >= 0;
+                  const progress = Math.min(Math.max(brand.achievement, 0), 100);
+                  return (
+                    <div key={brand.code} style={{background:"#0f172a", border:"1px solid #334155", borderRadius:10, padding:12}}>
+                      <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", gap:8, marginBottom:10}}>
+                        <span style={{fontSize:10, fontWeight:800, padding:"3px 9px", borderRadius:99, background:brand.gradient, color:brand.code === "goldgram" ? "#1a1200" : brand.code === "silvergram" ? "#0f172a" : "#f5d78e"}}>{brand.name}</span>
+                        <span style={{fontSize:16, fontWeight:800, color:brand.achievement >= 100 ? "#4ade80" : brand.achievement >= 75 ? "#60a5fa" : "#f87171"}}>{pct(brand.achievement)}</span>
+                      </div>
+                      <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:10}}>
+                        <div>
+                          <div style={{fontSize:10, color:"#64748b", marginBottom:2}}>TARGET TAHUN</div>
+                          <div style={{fontSize:14, fontWeight:700}}>{fmtS(brand.target)}</div>
+                        </div>
+                        <div>
+                          <div style={{fontSize:10, color:"#64748b", marginBottom:2}}>REALISASI OMZET</div>
+                          <div style={{fontSize:14, fontWeight:800, color:brand.color}}>{fmtS(brand.real)}</div>
+                        </div>
+                      </div>
+                      <div style={{height:7, borderRadius:99, background:"#1e293b", overflow:"hidden", marginBottom:8}}>
+                        <div style={{height:"100%", width:`${progress}%`, borderRadius:99, background:brand.gradient}} />
+                      </div>
+                      <div style={{fontSize:11, color:positive ? "#4ade80" : "#f87171"}}>
+                        {positive ? "Surplus" : "Gap"}: {fmtS(Math.abs(brand.gap))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
             <div style={{...S.card, overflowX:"auto", padding:8}}>

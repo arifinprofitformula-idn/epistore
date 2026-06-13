@@ -4,6 +4,7 @@ import mysql from "mysql2/promise";
 import { readFile } from "node:fs/promises";
 
 const databaseName = process.env.DB_NAME || "dashboard_epis";
+const autoCreateDatabase = process.env.DB_AUTO_CREATE !== "false";
 if (!/^[a-zA-Z0-9_]+$/.test(databaseName)) {
   throw new Error("DB_NAME hanya boleh berisi huruf, angka, dan underscore.");
 }
@@ -16,16 +17,18 @@ export const dbConfig = {
   database: databaseName,
 };
 
-const bootstrapConnection = await mysql.createConnection({
-  host: dbConfig.host,
-  port: dbConfig.port,
-  user: dbConfig.user,
-  password: dbConfig.password,
-});
-await bootstrapConnection.query(
-  `CREATE DATABASE IF NOT EXISTS \`${databaseName}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`,
-);
-await bootstrapConnection.end();
+if (autoCreateDatabase) {
+  const bootstrapConnection = await mysql.createConnection({
+    host: dbConfig.host,
+    port: dbConfig.port,
+    user: dbConfig.user,
+    password: dbConfig.password,
+  });
+  await bootstrapConnection.query(
+    `CREATE DATABASE IF NOT EXISTS \`${databaseName}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`,
+  );
+  await bootstrapConnection.end();
+}
 
 export const pool = mysql.createPool({
   ...dbConfig,

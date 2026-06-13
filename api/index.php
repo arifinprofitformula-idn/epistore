@@ -129,8 +129,7 @@ function install_application(): never
             $statement->execute(['BE Default', 'be', password_hash($bePin, PASSWORD_DEFAULT)]);
             $beId = (int) $pdo->lastInsertId();
             $assign = $pdo->prepare(
-                'INSERT INTO user_stores (user_id, store_id)
-                 SELECT ?, id FROM stores WHERE store_code = 0'
+                "INSERT INTO user_brands (user_id, brand_code) VALUES (?, 'goldgram')"
             );
             $assign->execute([$beId]);
         } else {
@@ -162,6 +161,15 @@ function install_application(): never
                 ]);
             }
         }
+
+        $pdo->exec(
+            "INSERT IGNORE INTO user_brands (user_id, brand_code)
+             SELECT id, 'goldgram' FROM users
+             WHERE role = 'be'
+               AND NOT EXISTS (
+                 SELECT 1 FROM user_brands ub WHERE ub.user_id = users.id
+               )"
+        );
 
         $pdo->commit();
         json_response([
@@ -239,18 +247,15 @@ function save_realisation(array $user, int $storeIndex, int $monthIndex): never
     if ($monthIndex < 0 || $monthIndex > 11) {
         json_response(['message' => 'Periode tidak valid.'], 400);
     }
-    if ($user['role'] !== 'admin' && !in_array($storeIndex, $user['storeIndexes'], true)) {
-        json_response(['message' => 'Anda tidak ditugaskan pada EPI Store tersebut.'], 403);
+    if ($user['role'] !== 'admin' && $user['brandCodes'] === []) {
+        json_response(['message' => 'Belum ada brand yang ditugaskan ke akun Anda.'], 403);
     }
 
     $body = request_body();
-    $entry = [
+    $submitted = [
         'g' => amount($body['g'] ?? null),
         'm' => amount($body['m'] ?? null),
         's' => amount($body['s'] ?? null),
-        'note' => mb_substr(trim((string) ($body['note'] ?? '')), 0, 2000),
-        'be' => $user['name'],
-        'ts' => gmdate('c'),
     ];
 
     $pdo = db();
@@ -269,6 +274,26 @@ function save_realisation(array $user, int $storeIndex, int $monthIndex): never
         );
         $oldStatement->execute([$storeId, APP_YEAR, $monthIndex]);
         $old = $oldStatement->fetch() ?: null;
+        $entry = [
+            'g' => (int) ($old['g'] ?? 0),
+            'm' => (int) ($old['m'] ?? 0),
+            's' => (int) ($old['s'] ?? 0),
+            'note' => mb_substr(trim((string) ($body['note'] ?? '')), 0, 2000),
+            'be' => $user['name'],
+            'ts' => gmdate('c'),
+        ];
+        $fieldByBrand = [
+            'goldgram' => 'g',
+            'meezan_gold' => 'm',
+            'silvergram' => 's',
+        ];
+        $allowedBrands = $user['role'] === 'admin'
+            ? array_keys($fieldByBrand)
+            : $user['brandCodes'];
+        foreach ($allowedBrands as $brandCode) {
+            $field = $fieldByBrand[$brandCode];
+            $entry[$field] = $submitted[$field];
+        }
 
         $save = $pdo->prepare(
             'INSERT INTO realisations
@@ -286,9 +311,7 @@ function save_realisation(array $user, int $storeIndex, int $monthIndex): never
             $storeId,
             APP_YEAR,
             $monthIndex,
-            $entry['g'],
-            $entry['m'],
-            $entry['s'],
+            $entry['g'], $entry['m'], $entry['s'],
             $entry['note'],
             $user['id'],
             $user['name'],
@@ -381,19 +404,18 @@ function list_users(): never
            u.name,
            u.role,
            u.is_active AS isActive,
-           GROUP_CONCAT(s.store_code ORDER BY s.store_code) AS storeIndexes
+           GROUP_CONCAT(ub.brand_code ORDER BY ub.brand_code) AS brandCodes
          FROM users u
-         LEFT JOIN user_stores us ON us.user_id = u.id
-         LEFT JOIN stores s ON s.id = us.store_id
+         LEFT JOIN user_brands ub ON ub.user_id = u.id
          GROUP BY u.id
          ORDER BY u.role, u.name'
     )->fetchAll();
     foreach ($rows as &$row) {
         $row['id'] = (int) $row['id'];
         $row['isActive'] = (bool) $row['isActive'];
-        $row['storeIndexes'] = $row['storeIndexes'] === null
+        $row['brandCodes'] = $row['brandCodes'] === null
             ? []
-            : array_map('intval', explode(',', $row['storeIndexes']));
+            : explode(',', $row['brandCodes']);
     }
     json_response(['users' => $rows]);
 }
@@ -421,7 +443,7 @@ function create_user(array $admin): never
     $name = mb_substr(trim((string) ($body['name'] ?? '')), 0, 120);
     $pin = trim((string) ($body['pin'] ?? ''));
     $role = ($body['role'] ?? '') === 'admin' ? 'admin' : 'be';
-    $stores = array_values(array_unique(array_map('intval', $body['storeIndexes'] ?? [])));
+    $brands = normalize_brand_codes($body['brandCodes'] ?? []);
     if ($name === '' || !valid_pin($pin)) {
         json_response(['message' => 'Nama dan PIN 4-6 digit wajib diisi.'], 400);
     }
@@ -435,11 +457,11 @@ function create_user(array $admin): never
         );
         $statement->execute([$name, $role, password_hash($pin, PASSWORD_DEFAULT)]);
         $userId = (int) $pdo->lastInsertId();
-        assign_stores($pdo, $userId, $role === 'be' ? $stores : []);
+        assign_brands($pdo, $userId, $role === 'be' ? $brands : []);
         audit($pdo, $admin['id'], 'create', 'user', (string) $userId, null, [
             'name' => $name,
             'role' => $role,
-            'storeIndexes' => $stores,
+            'brandCodes' => $brands,
         ]);
         $pdo->commit();
         json_response(['id' => $userId], 201);
@@ -456,7 +478,7 @@ function update_user(array $admin, int $userId): never
     $pin = trim((string) ($body['pin'] ?? ''));
     $role = ($body['role'] ?? '') === 'admin' ? 'admin' : 'be';
     $isActive = ($body['isActive'] ?? true) !== false;
-    $stores = array_values(array_unique(array_map('intval', $body['storeIndexes'] ?? [])));
+    $brands = normalize_brand_codes($body['brandCodes'] ?? []);
     if ($name === '' || ($pin !== '' && !valid_pin($pin))) {
         json_response(['message' => 'Data pengguna tidak valid.'], 400);
     }
@@ -498,12 +520,12 @@ function update_user(array $admin, int $userId): never
             );
             $statement->execute([$name, $role, $isActive, $userId]);
         }
-        assign_stores($pdo, $userId, $role === 'be' ? $stores : []);
+        assign_brands($pdo, $userId, $role === 'be' ? $brands : []);
         audit($pdo, $admin['id'], 'update', 'user', (string) $userId, $old, [
             'name' => $name,
             'role' => $role,
             'isActive' => $isActive,
-            'storeIndexes' => $stores,
+            'brandCodes' => $brands,
             'pinChanged' => $pin !== '',
         ]);
         $pdo->commit();
@@ -516,22 +538,17 @@ function update_user(array $admin, int $userId): never
     }
 }
 
-function assign_stores(PDO $pdo, int $userId, array $storeIndexes): void
+function assign_brands(PDO $pdo, int $userId, array $brandCodes): void
 {
-    $delete = $pdo->prepare('DELETE FROM user_stores WHERE user_id = ?');
+    $delete = $pdo->prepare('DELETE FROM user_brands WHERE user_id = ?');
     $delete->execute([$userId]);
-    if ($storeIndexes === []) {
+    if ($brandCodes === []) {
         return;
     }
-    $find = $pdo->prepare('SELECT id FROM stores WHERE store_code = ?');
     $insert = $pdo->prepare(
-        'INSERT INTO user_stores (user_id, store_id) VALUES (?, ?)'
+        'INSERT INTO user_brands (user_id, brand_code) VALUES (?, ?)'
     );
-    foreach ($storeIndexes as $storeIndex) {
-        $find->execute([$storeIndex]);
-        $storeId = $find->fetchColumn();
-        if ($storeId) {
-            $insert->execute([$userId, $storeId]);
-        }
+    foreach ($brandCodes as $brandCode) {
+        $insert->execute([$userId, $brandCode]);
     }
 }

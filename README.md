@@ -14,7 +14,7 @@ Aplikasi multi-user untuk input realisasi, dashboard performa, perhitungan rewar
 ## Model Akses
 
 - **Administrator** dapat melihat seluruh data, mengimpor CSV, serta membuat dan mengubah akun.
-- **Brand Executive** hanya dapat menyimpan realisasi untuk EPI Store yang ditugaskan.
+- **Brand Executive** dapat memilih seluruh EPI Store, tetapi hanya dapat mengubah realisasi brand yang ditugaskan: GOLDGRAM, MEEZAN GOLD, atau SILVERGRAM.
 - Identitas submitter diambil dari sesi server, bukan dari data browser.
 - Perubahan realisasi dan akun dicatat pada tabel `audit_logs`.
 
@@ -56,7 +56,7 @@ Buka `http://localhost:5173`.
 Database, tabel, 28 EPI Store, dan data awal dibuat otomatis. Akun awal hanya dibuat ketika tabel pengguna masih kosong:
 
 - Admin: `9999`
-- BE demo: `1234`, ditugaskan ke EPIS Tangerang
+- BE demo: `1234`, ditugaskan ke brand GOLDGRAM
 
 Segera ganti PIN akun awal melalui menu **Akses & PIN**.
 
@@ -64,7 +64,7 @@ Segera ganti PIN akun awal melalui menu **Akses & PIN**.
 
 - `users`: akun, peran, PIN hash, dan status aktif
 - `stores`: master EPI Store dan target
-- `user_stores`: penugasan pengguna ke EPI Store
+- `user_brands`: penugasan pengguna ke GOLDGRAM, MEEZAN GOLD, atau SILVERGRAM
 - `realisations`: realisasi bulanan per store
 - `audit_logs`: histori perubahan penting
 - `sessions`: sesi login Express
@@ -164,6 +164,8 @@ https://dashboardepis.arvadigital.web.id/setup.html
 
 Masukkan `install_key`. Installer membuat tabel, 28 store, data awal, admin `9999`, dan BE demo `1234`. Setelah berhasil, ganti `install_key` pada konfigurasi dan segera ubah PIN akun awal.
 
+Installer juga menjalankan migrasi penugasan brand. Pengguna BE lama yang belum memiliki penugasan brand akan diberi GOLDGRAM sebagai nilai awal; administrator kemudian dapat menggantinya melalui menu **Akses & PIN**.
+
 ### 6. Update Berikutnya
 
 Setiap perubahan frontend harus dibuild lokal:
@@ -176,6 +178,8 @@ git push
 ```
 
 Kemudian jalankan **Update from Remote** dan **Deploy HEAD Commit** di cPanel.
+
+Jika update membawa perubahan schema, buka kembali `/setup.html` dan jalankan installer menggunakan `install_key`. Data realisasi yang sudah ada tidak dihapus.
 
 ### Troubleshooting
 

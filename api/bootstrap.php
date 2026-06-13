@@ -105,17 +105,16 @@ function session_user(bool $required = true): ?array
         return null;
     }
 
-    $stores = db()->prepare(
-        'SELECT s.store_code
-         FROM user_stores us
-         JOIN stores s ON s.id = us.store_id
-         WHERE us.user_id = ?
-         ORDER BY s.store_code'
+    $brands = db()->prepare(
+        'SELECT brand_code
+         FROM user_brands
+         WHERE user_id = ?
+         ORDER BY brand_code'
     );
-    $stores->execute([$userId]);
+    $brands->execute([$userId]);
     $user['id'] = (int) $user['id'];
     $user['isActive'] = (bool) $user['isActive'];
-    $user['storeIndexes'] = array_map('intval', $stores->fetchAll(PDO::FETCH_COLUMN));
+    $user['brandCodes'] = $brands->fetchAll(PDO::FETCH_COLUMN);
     return $user;
 }
 
@@ -129,6 +128,18 @@ function require_admin(array $user): void
 function valid_pin(string $pin): bool
 {
     return preg_match('/^\d{4,6}$/', $pin) === 1;
+}
+
+function normalize_brand_codes(mixed $values): array
+{
+    $allowed = ['goldgram', 'meezan_gold', 'silvergram'];
+    if (!is_array($values)) {
+        return [];
+    }
+    return array_values(array_unique(array_filter(
+        array_map('strval', $values),
+        static fn (string $value): bool => in_array($value, $allowed, true),
+    )));
 }
 
 function amount(mixed $value): int

@@ -20,12 +20,11 @@ CREATE TABLE IF NOT EXISTS stores (
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS user_stores (
+CREATE TABLE IF NOT EXISTS user_brands (
   user_id BIGINT UNSIGNED NOT NULL,
-  store_id BIGINT UNSIGNED NOT NULL,
-  PRIMARY KEY (user_id, store_id),
-  CONSTRAINT fk_php_user_stores_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-  CONSTRAINT fk_php_user_stores_store FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE CASCADE
+  brand_code ENUM('goldgram', 'meezan_gold', 'silvergram') NOT NULL,
+  PRIMARY KEY (user_id, brand_code),
+  CONSTRAINT fk_php_user_brands_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS realisations (

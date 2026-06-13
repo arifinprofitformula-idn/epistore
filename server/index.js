@@ -81,9 +81,11 @@ const normalizeAmount = (value) => {
   return Number.isSafeInteger(amount) && amount >= 0 ? amount : null;
 };
 
-async function canAccessStore(user, storeIndex) {
-  return user.role === "admin" || user.storeIndexes.includes(storeIndex);
-}
+const allowedBrandCodes = ["goldgram", "meezan_gold", "silvergram"];
+const normalizeBrandCodes = (values) => (
+  [...new Set((Array.isArray(values) ? values : []).map(String))]
+    .filter((value) => allowedBrandCodes.includes(value))
+);
 
 async function writeAudit(connection, userId, action, entity, entityId, oldValue, newValue) {
   await connection.query(
@@ -199,8 +201,8 @@ app.put("/api/realisations/:storeIndex/:monthIndex", requireAuth, async (req, re
   ) {
     return res.status(400).json({ message: "Data realisasi tidak valid." });
   }
-  if (!(await canAccessStore(req.user, storeIndex))) {
-    return res.status(403).json({ message: "Anda tidak ditugaskan pada EPI Store tersebut." });
+  if (req.user.role !== "admin" && req.user.brandCodes.length === 0) {
+    return res.status(403).json({ message: "Belum ada brand yang ditugaskan ke akun Anda." });
   }
 
   const connection = await pool.getConnection();
@@ -221,13 +223,24 @@ app.put("/api/realisations/:storeIndex/:monthIndex", requireAuth, async (req, re
       [store.id, monthIndex],
     );
     const entry = {
-      g,
-      m,
-      s,
+      g: Number(existing?.g || 0),
+      m: Number(existing?.m || 0),
+      s: Number(existing?.s || 0),
       note,
       be: req.user.name,
       ts: new Date().toISOString(),
     };
+    const fieldByBrand = {
+      goldgram: "g",
+      meezan_gold: "m",
+      silvergram: "s",
+    };
+    const submitted = { g, m, s };
+    const userBrands = req.user.role === "admin" ? allowedBrandCodes : req.user.brandCodes;
+    for (const brandCode of userBrands) {
+      const field = fieldByBrand[brandCode];
+      entry[field] = submitted[field];
+    }
 
     await connection.query(
       `INSERT INTO realisations
@@ -240,7 +253,7 @@ app.put("/api/realisations/:storeIndex/:monthIndex", requireAuth, async (req, re
         note = VALUES(note),
         submitted_by = VALUES(submitted_by),
         submitted_name = VALUES(submitted_name)`,
-      [store.id, monthIndex, g, m, s, note, req.user.id, req.user.name],
+      [store.id, monthIndex, entry.g, entry.m, entry.s, note, req.user.id, req.user.name],
     );
     await writeAudit(
       connection,
@@ -346,18 +359,17 @@ app.get("/api/users", requireAuth, requireAdmin, async (_req, res, next) => {
         u.name,
         u.role,
         u.is_active AS isActive,
-        GROUP_CONCAT(s.store_code ORDER BY s.store_code) AS storeIndexes
+        GROUP_CONCAT(ub.brand_code ORDER BY ub.brand_code) AS brandCodes
        FROM users u
-       LEFT JOIN user_stores us ON us.user_id = u.id
-       LEFT JOIN stores s ON s.id = us.store_id
+       LEFT JOIN user_brands ub ON ub.user_id = u.id
        GROUP BY u.id
        ORDER BY u.role, u.name`,
     );
     res.json({
       users: rows.map((user) => ({
         ...user,
-        storeIndexes: user.storeIndexes
-          ? String(user.storeIndexes).split(",").map(Number)
+        brandCodes: user.brandCodes
+          ? String(user.brandCodes).split(",")
           : [],
       })),
     });
@@ -370,7 +382,7 @@ app.post("/api/users", requireAuth, requireAdmin, async (req, res, next) => {
   const name = String(req.body.name || "").trim().slice(0, 120);
   const pin = String(req.body.pin || "").trim();
   const role = req.body.role === "admin" ? "admin" : "be";
-  const storeIndexes = [...new Set((req.body.storeIndexes || []).map(Number))];
+  const brandCodes = normalizeBrandCodes(req.body.brandCodes);
 
   if (!name || !isValidPin(pin)) {
     return res.status(400).json({ message: "Nama dan PIN 4-6 digit wajib diisi." });
@@ -391,11 +403,10 @@ app.post("/api/users", requireAuth, requireAdmin, async (req, res, next) => {
       "INSERT INTO users (name, role, pin_hash) VALUES (?, ?, ?)",
       [name, role, pinHash],
     );
-    if (role === "be" && storeIndexes.length > 0) {
+    if (role === "be" && brandCodes.length > 0) {
       await connection.query(
-        `INSERT INTO user_stores (user_id, store_id)
-         SELECT ?, id FROM stores WHERE store_code IN (?)`,
-        [result.insertId, storeIndexes],
+        `INSERT INTO user_brands (user_id, brand_code) VALUES ?`,
+        [brandCodes.map((brandCode) => [result.insertId, brandCode])],
       );
     }
     await writeAudit(
@@ -405,7 +416,7 @@ app.post("/api/users", requireAuth, requireAdmin, async (req, res, next) => {
       "user",
       result.insertId,
       null,
-      { name, role, storeIndexes },
+      { name, role, brandCodes },
     );
     await connection.commit();
     res.status(201).json({ id: result.insertId });
@@ -423,7 +434,7 @@ app.patch("/api/users/:id", requireAuth, requireAdmin, async (req, res, next) =>
   const pin = String(req.body.pin || "").trim();
   const role = req.body.role === "admin" ? "admin" : "be";
   const isActive = req.body.isActive !== false;
-  const storeIndexes = [...new Set((req.body.storeIndexes || []).map(Number))];
+  const brandCodes = normalizeBrandCodes(req.body.brandCodes);
 
   if (!Number.isInteger(userId) || !name || (pin && !isValidPin(pin))) {
     return res.status(400).json({ message: "Data pengguna tidak valid." });
@@ -466,12 +477,11 @@ app.patch("/api/users/:id", requireAuth, requireAdmin, async (req, res, next) =>
       );
     }
 
-    await connection.query("DELETE FROM user_stores WHERE user_id = ?", [userId]);
-    if (role === "be" && storeIndexes.length > 0) {
+    await connection.query("DELETE FROM user_brands WHERE user_id = ?", [userId]);
+    if (role === "be" && brandCodes.length > 0) {
       await connection.query(
-        `INSERT INTO user_stores (user_id, store_id)
-         SELECT ?, id FROM stores WHERE store_code IN (?)`,
-        [userId, storeIndexes],
+        `INSERT INTO user_brands (user_id, brand_code) VALUES ?`,
+        [brandCodes.map((brandCode) => [userId, brandCode])],
       );
     }
     await writeAudit(
@@ -481,7 +491,7 @@ app.patch("/api/users/:id", requireAuth, requireAdmin, async (req, res, next) =>
       "user",
       userId,
       oldUser,
-      { name, role, isActive, storeIndexes, pinChanged: Boolean(pin) },
+      { name, role, isActive, brandCodes, pinChanged: Boolean(pin) },
     );
     await connection.commit();
     res.json({ ok: true });

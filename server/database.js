@@ -66,12 +66,11 @@ export async function initializeDatabase() {
   `);
 
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS user_stores (
+    CREATE TABLE IF NOT EXISTS user_brands (
       user_id BIGINT UNSIGNED NOT NULL,
-      store_id BIGINT UNSIGNED NOT NULL,
-      PRIMARY KEY (user_id, store_id),
-      CONSTRAINT fk_user_stores_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-      CONSTRAINT fk_user_stores_store FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE CASCADE
+      brand_code ENUM('goldgram', 'meezan_gold', 'silvergram') NOT NULL,
+      PRIMARY KEY (user_id, brand_code),
+      CONSTRAINT fk_user_brands_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     ) ENGINE=InnoDB
   `);
 
@@ -152,8 +151,8 @@ async function seedDatabase() {
         ["BE Default", demoHash],
       );
       await connection.query(
-        `INSERT INTO user_stores (user_id, store_id)
-         SELECT ?, id FROM stores WHERE store_code = 0`,
+        `INSERT INTO user_brands (user_id, brand_code)
+         VALUES (?, 'goldgram')`,
         [demoResult.insertId],
       );
     } else {
@@ -188,6 +187,15 @@ async function seedDatabase() {
       }
     }
 
+    await connection.query(
+      `INSERT IGNORE INTO user_brands (user_id, brand_code)
+       SELECT id, 'goldgram' FROM users
+       WHERE role = 'be'
+         AND NOT EXISTS (
+           SELECT 1 FROM user_brands ub WHERE ub.user_id = users.id
+         )`,
+    );
+
     await connection.commit();
   } catch (error) {
     await connection.rollback();
@@ -204,12 +212,11 @@ export async function getSessionUser(userId) {
   );
   if (!user || !user.isActive) return null;
 
-  const [stores] = await pool.query(
-    `SELECT s.store_code AS storeIndex
-     FROM user_stores us
-     JOIN stores s ON s.id = us.store_id
-     WHERE us.user_id = ?
-     ORDER BY s.store_code`,
+  const [brands] = await pool.query(
+    `SELECT brand_code AS brandCode
+     FROM user_brands
+     WHERE user_id = ?
+     ORDER BY brand_code`,
     [userId],
   );
 
@@ -217,6 +224,6 @@ export async function getSessionUser(userId) {
     id: user.id,
     name: user.name,
     role: user.role,
-    storeIndexes: stores.map((store) => store.storeIndex),
+    brandCodes: brands.map((brand) => brand.brandCode),
   };
 }

@@ -47,6 +47,12 @@ const PERAK_TIERS = [
   { min: 150e6, rate: 0.001, name: "Perak Tier 1" },
 ];
 
+const BRANDS = [
+  { code: "goldgram", name: "GOLDGRAM", field: "g" },
+  { code: "meezan_gold", name: "MEEZAN GOLD", field: "m" },
+  { code: "silvergram", name: "SILVERGRAM", field: "s" },
+];
+
 // Realisasi Jan-Mei 2026, full 25 EPI Store (sumber: Realisasi_Input_Jan_Mei_Import_EPI_RECHECK.csv)
 // key: "storeIdx-monthIdx" -> { g, m, s, be }
 const SEED_DATA = {
@@ -252,7 +258,7 @@ export default function App() {
   const [newPin, setNewPin] = useState("");
   const [newPinName, setNewPinName] = useState("");
   const [newUserRole, setNewUserRole] = useState("be");
-  const [newUserStore, setNewUserStore] = useState(0);
+  const [newUserBrand, setNewUserBrand] = useState("goldgram");
   const [userPinChanges, setUserPinChanges] = useState({});
 
   // CSV / bulk import
@@ -305,7 +311,6 @@ export default function App() {
       setLoginErr("");
       setPinInput("");
 
-      if (nextSession.storeIndexes?.length) setFStore(nextSession.storeIndexes[0]);
       if (nextSession.role === "admin") await loadUsers();
     } catch (error) {
       setLoginErr(error.message);
@@ -435,7 +440,7 @@ export default function App() {
           name,
           pin,
           role: newUserRole,
-          storeIndexes: newUserRole === "be" ? [Number(newUserStore)] : [],
+          brandCodes: newUserRole === "be" ? [newUserBrand] : [],
         }),
       });
       await loadUsers();
@@ -462,7 +467,7 @@ export default function App() {
           name: user.name,
           role: user.role,
           isActive: user.isActive,
-          storeIndexes: user.role === "be" ? user.storeIndexes : [],
+          brandCodes: user.role === "be" ? user.brandCodes : [],
           pin: userPinChanges[user.id] || "",
         }),
       });
@@ -519,9 +524,10 @@ export default function App() {
     setTimeout(() => setImportMsg(null), 5000);
   };
 
-  const inputStoreIndexes = session?.role === "admin"
-    ? STORES.map((_, index) => index)
-    : session?.storeIndexes || [];
+  const assignedBrandCodes = session?.role === "admin"
+    ? BRANDS.map((brand) => brand.code)
+    : session?.brandCodes || [];
+  const canEditBrand = (brandCode) => assignedBrandCodes.includes(brandCode);
 
   const S = {
     wrap: { fontFamily: "'Segoe UI', system-ui, sans-serif", background: "#0f172a", minHeight: "100vh", color: "#e2e8f0", paddingBottom: 40 },
@@ -618,9 +624,8 @@ export default function App() {
                 <div>
                   <label style={S.label}>EPI Store</label>
                   <select style={S.select} value={fStore} onChange={e => setFStore(+e.target.value)}>
-                    {inputStoreIndexes.map((i) => <option key={i} value={i}>{STORES[i].n}</option>)}
+                    {STORES.map((store, i) => <option key={i} value={i}>{store.n}</option>)}
                   </select>
-                  {inputStoreIndexes.length === 0 && <div style={{fontSize:11, color:"#f87171", marginTop:5}}>Belum ada EPI Store yang ditugaskan ke akun ini.</div>}
                 </div>
                 <div>
                   <label style={S.label}>Bulan</label>
@@ -634,16 +639,21 @@ export default function App() {
                   ["GOLDGRAM", fG, setFG, inputPreview.tg, "#1a1200", "linear-gradient(135deg,#b8860b,#f5d78e)"],
                   ["MEEZAN GOLD", fM, setFM, inputPreview.tm, "#f5d78e", "linear-gradient(135deg,#0f3d2e,#4a7a5e)"],
                   ["SILVERGRAM", fS, setFS, inputPreview.ts, "#0f172a", "linear-gradient(135deg,#94a3b8,#e2e8f0)"],
-                ].map(([name, val, set, tgt, txtCol, bgGrad]) => (
+                ].map(([name, val, set, tgt, txtCol, bgGrad]) => {
+                  const brand = BRANDS.find((item) => item.name === name);
+                  const editable = canEditBrand(brand.code);
+                  return (
                   <div key={name}>
                     <label style={S.label}>
                       <span style={{fontSize:10, fontWeight:800, padding:"2px 8px", borderRadius:99, background:bgGrad, color:txtCol, marginRight:6}}>{name}</span>
                       Target bulan ini: {fmtS(tgt)}
+                      {!editable && <span style={{color:"#64748b", marginLeft:6}}>(hanya baca)</span>}
                     </label>
-                    <input style={S.input} inputMode="numeric" placeholder="Realisasi omzet (Rp)" value={val}
+                    <input style={{...S.input, opacity: editable ? 1 : 0.55}} disabled={!editable} inputMode="numeric" placeholder="Realisasi omzet (Rp)" value={val}
                       onChange={e => set(fmtInput(e.target.value))} />
                   </div>
-                ))}
+                  );
+                })}
                 <div>
                   <label style={S.label}>Catatan (opsional)</label>
                   <input style={S.input} placeholder="Catatan" value={fNote} onChange={e => setFNote(e.target.value)} />
@@ -662,7 +672,7 @@ export default function App() {
               </div>
 
               <div style={{marginTop:12}}>
-                <button style={{...S.btn, opacity: saving || inputStoreIndexes.length === 0 ? 0.6 : 1}} disabled={saving || inputStoreIndexes.length === 0} onClick={save}>
+                <button style={{...S.btn, opacity: saving || assignedBrandCodes.length === 0 ? 0.6 : 1}} disabled={saving || assignedBrandCodes.length === 0} onClick={save}>
                   {saving ? "Menyimpan…" : "💾 Submit Realisasi"}
                 </button>
                 {msg && <div style={{marginTop:8, fontSize:13, fontWeight:700, color: msg.ok ? "#4ade80" : "#f87171", textAlign:"center"}}>{msg.t}</div>}
@@ -670,7 +680,7 @@ export default function App() {
             </div>
             <div style={S.card}>
               <div style={{fontSize:12, color:"#94a3b8"}}>
-                💡 Data tersimpan terpusat dan dilihat semua tim. Submit ulang pada store+bulan yang sama akan menimpa data sebelumnya (revisi).
+                Data tersimpan terpusat. Anda dapat memilih semua EPI Store, tetapi hanya kolom brand yang ditugaskan kepada akun Anda yang dapat diubah.
               </div>
             </div>
           </div>
@@ -947,9 +957,9 @@ export default function App() {
                   </select>
                 </div>
                 <div>
-                  <label style={S.label}>Penugasan EPI Store</label>
-                  <select style={S.select} value={newUserStore} disabled={newUserRole === "admin"} onChange={e => setNewUserStore(+e.target.value)}>
-                    {STORES.map((store, index) => <option key={index} value={index}>{store.n}</option>)}
+                  <label style={S.label}>Penugasan Brand</label>
+                  <select style={S.select} value={newUserBrand} disabled={newUserRole === "admin"} onChange={e => setNewUserBrand(e.target.value)}>
+                    {BRANDS.map((brand) => <option key={brand.code} value={brand.code}>{brand.name}</option>)}
                   </select>
                 </div>
                 <button style={{...S.btn, width:"auto", padding:"10px 16px"}} onClick={addUser}>Tambah</button>
@@ -962,7 +972,7 @@ export default function App() {
               <div style={{fontSize:12, color:"#94a3b8", marginBottom:10}}>PIN disimpan sebagai hash dan tidak dapat ditampilkan kembali. Isi kolom PIN baru hanya saat ingin menggantinya.</div>
               <div style={{marginTop:14}}>
                 <table style={{borderCollapse:"collapse", width:"100%", minWidth:850}}>
-                  <thead><tr>{["Nama","Peran","EPI Store","Status","PIN Baru","Aksi"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
+                  <thead><tr>{["Nama","Peran","Brand","Status","PIN Baru","Aksi"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
                   <tbody>
                     {users.map((user) => (
                       <tr key={user.id}>
@@ -978,12 +988,12 @@ export default function App() {
                         <td style={S.td}>
                           <select
                             style={{...S.select, minWidth:220}}
-                            value={user.storeIndexes[0] ?? ""}
+                            value={user.brandCodes[0] ?? ""}
                             disabled={user.role === "admin"}
-                            onChange={e => updateUserField(user.id, "storeIndexes", e.target.value === "" ? [] : [+e.target.value])}
+                            onChange={e => updateUserField(user.id, "brandCodes", e.target.value === "" ? [] : [e.target.value])}
                           >
                             <option value="">Belum ditugaskan</option>
-                            {STORES.map((store, index) => <option key={index} value={index}>{store.n}</option>)}
+                            {BRANDS.map((brand) => <option key={brand.code} value={brand.code}>{brand.name}</option>)}
                           </select>
                         </td>
                         <td style={S.td}>
@@ -1014,7 +1024,7 @@ export default function App() {
             <div style={S.card}>
               <div style={{fontSize:12, color:"#94a3b8", lineHeight:1.6}}>
                 Setiap submission mengambil identitas dari sesi server dan otomatis tercatat atas nama pengguna tersebut.
-                Brand Executive hanya dapat menyimpan data untuk EPI Store yang ditugaskan kepadanya.
+                Brand Executive dapat memilih seluruh EPI Store, tetapi hanya dapat mengubah omzet brand yang ditugaskan kepadanya.
               </div>
             </div>
           </div>

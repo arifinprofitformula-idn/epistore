@@ -494,8 +494,9 @@ app.patch("/api/users/:id", requireAuth, requireAdmin, async (req, res, next) =>
 });
 
 if (isProduction) {
-  app.use(express.static(path.join(rootDir, "dist")));
-  app.get("/{*splat}", (_req, res) => res.sendFile(path.join(rootDir, "dist/index.html")));
+  app.use("/public", express.static(path.join(rootDir, "public")));
+  app.use(express.static(path.join(rootDir, "public")));
+  app.get("/{*splat}", (_req, res) => res.sendFile(path.join(rootDir, "public/index.html")));
 }
 
 app.use((error, _req, res, _next) => {

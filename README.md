@@ -77,133 +77,113 @@ Kombinasi `store_id`, `year`, dan `month_index` pada realisasi bersifat unik seh
 npm run build
 ```
 
-Frontend hasil build berada di `dist/`. Dalam mode produksi, Express menyajikan frontend dan API dari port yang sama.
+Frontend hasil build berada di `public/`. Folder ini harus ikut di-commit agar shared hosting tidak perlu menjalankan Node.js.
 
-## Deployment Shared Hosting cPanel
+## Deployment Shared Hosting Tanpa Node.js
 
-Shared hosting harus menyediakan:
+Konfigurasi yang digunakan:
 
-- **Setup Node.js App** atau **Application Manager**
-- Node.js minimal `20.19` (disarankan Node.js 22)
-- MySQL/MariaDB
-- Git Version Control
-- Terminal/SSH atau dukungan deployment `.cpanel.yml`
+- Domain: `https://dashboardepis.arvadigital.web.id`
+- Document root: `/home/arvadigi/repositories/epistore`
+- Backend: PHP 8.1+ dengan ekstensi PDO MySQL
+- Database: MySQL/MariaDB
+- Frontend: hasil build React pada folder `public/`
 
-Hosting yang hanya menyediakan PHP dan upload file statis tidak dapat menjalankan backend Express aplikasi ini.
+Node.js hanya diperlukan di komputer pengembangan untuk menghasilkan folder `public/`. Server shared hosting tidak menjalankan `app.js`, Express, PM2, atau Passenger.
 
 ### 1. Buat Database
 
 Melalui **MySQL Database Wizard**:
 
-1. Buat database, misalnya `cpaneluser_dashboard_epis`.
-2. Buat database user, misalnya `cpaneluser_dashboard`.
+1. Buat database, misalnya `arvadigi_dashboard_epis`.
+2. Buat database user, misalnya `arvadigi_dashboard`.
 3. Hubungkan user ke database dan berikan **ALL PRIVILEGES**.
 4. Catat nama database, username, password, dan host database.
 
 Nama database dan user pada cPanel biasanya otomatis mendapat prefix username akun hosting.
 
-### 2. Pastikan Repository Terhubung
+### 2. Buat Konfigurasi PHP
 
-Pada **Git Version Control**, repository aplikasi dapat berada misalnya di:
-
-```text
-/home/cpaneluser/repositories/dashboardepis
-```
-
-Gunakan folder repository tersebut langsung sebagai **Application Root**. Proyek sudah menyediakan:
-
-- [.cpanel.yml](.cpanel.yml) sebagai deployment hook
-- [deploy/cpanel-deploy.sh](deploy/cpanel-deploy.sh) sebagai skrip build
-- [app.js](app.js) sebagai startup file Passenger
-
-Untuk private repository, pasang SSH/deploy key milik server hosting pada penyedia Git.
-
-### 3. Buat File `.env`
-
-Di root repository pada server, buat `.env` berdasarkan
-`deploy/.env.shared-hosting.example`:
-
-```env
-NODE_ENV=production
-SESSION_SECRET=isi-random-minimal-32-karakter
-DB_HOST=localhost
-DB_PORT=3306
-DB_NAME=cpaneluser_dashboard_epis
-DB_USER=cpaneluser_dashboard
-DB_PASSWORD=password-database
-DB_CONNECTION_LIMIT=5
-DB_AUTO_CREATE=false
-DEFAULT_ADMIN_PIN=9999
-DEFAULT_BE_PIN=1234
-```
-
-`DB_AUTO_CREATE=false` wajib digunakan karena database sudah dibuat melalui cPanel dan user shared hosting biasanya tidak memiliki izin `CREATE DATABASE`.
-
-File `.env` tidak ikut Git dan tidak akan terhapus ketika source diperbarui.
-
-### 4. Daftarkan Aplikasi Node.js
-
-Pada **Setup Node.js App**:
-
-| Pengaturan | Nilai |
-|---|---|
-| Node.js version | `22` atau minimal `20.19` |
-| Application mode | `Production` |
-| Application root | path repository, contoh `repositories/dashboardepis` |
-| Application URL | domain atau subdomain dashboard |
-| Application startup file | `app.js` |
-
-Jangan mengisi `PORT` secara manual. Passenger/cPanel akan memasukkan port internal melalui environment aplikasi.
-
-### 5. Deployment Pertama
-
-Pada **Git Version Control → Manage → Pull or Deploy**:
-
-1. Klik **Update from Remote**.
-2. Klik **Deploy HEAD Commit**.
-
-Deployment menjalankan:
+Buat file berikut melalui File Manager:
 
 ```text
-npm ci
-npm run db:init
-npm run build
-npm prune --omit=dev
-touch tmp/restart.txt
+/home/arvadigi/repositories/epistore/api/config.local.php
 ```
 
-`db:init` aman dijalankan berulang kali. Perintah ini membuat tabel yang belum tersedia dan hanya membuat akun serta data awal ketika tabel masih kosong.
+Salin isi [api/config.example.php](api/config.example.php), lalu sesuaikan:
 
-Jika menu deploy tidak tersedia tetapi Terminal tersedia:
+```php
+<?php
+return [
+    'database' => [
+        'host' => 'localhost',
+        'port' => 3306,
+        'name' => 'arvadigi_dashboard_epis',
+        'user' => 'arvadigi_dashboard',
+        'password' => 'PASSWORD_DATABASE',
+    ],
+    'app' => [
+        'install_key' => 'KUNCI_RANDOM_YANG_PANJANG',
+        'default_admin_pin' => '9999',
+        'default_be_pin' => '1234',
+        'secure_cookie' => true,
+    ],
+];
+```
+
+`config.local.php` telah masuk `.gitignore`, sehingga kredensial server tidak tertimpa ketika repository diperbarui.
+
+### 3. Build dan Push dari Komputer Lokal
 
 ```bash
-cd ~/repositories/dashboardepis
-bash deploy/cpanel-deploy.sh
+npm install
+npm run build
+git add public api database .htaccess setup.html
+git commit -m "Deploy PHP shared hosting"
+git push
 ```
 
-### 6. Deployment Update
+Folder `public/` sengaja disimpan di repository karena shared hosting tidak memiliki Node.js.
 
-Setelah perubahan baru masuk ke branch repository:
+### 4. Tarik Source di Shared Hosting
 
-1. Buka **Git Version Control → Manage**.
-2. Klik **Update from Remote**.
-3. Klik **Deploy HEAD Commit**.
+Pada **Git Version Control → Manage**:
 
-Skrip akan memasang dependency sesuai lockfile, memperbarui schema yang diperlukan, build frontend, dan me-restart aplikasi.
+1. Klik **Update from Remote**.
+2. Klik **Deploy HEAD Commit** bila tombol deployment tersedia.
+
+Hook [.cpanel.yml](.cpanel.yml) hanya memverifikasi bahwa `public/index.html` dan `api/config.local.php` tersedia. Tidak ada perintah npm pada server.
+
+### 5. Inisialisasi Database
+
+Buka:
+
+```text
+https://dashboardepis.arvadigital.web.id/setup.html
+```
+
+Masukkan `install_key`. Installer membuat tabel, 28 store, data awal, admin `9999`, dan BE demo `1234`. Setelah berhasil, ganti `install_key` pada konfigurasi dan segera ubah PIN akun awal.
+
+### 6. Update Berikutnya
+
+Setiap perubahan frontend harus dibuild lokal:
+
+```bash
+npm run build
+git add public
+git commit -m "Update dashboard"
+git push
+```
+
+Kemudian jalankan **Update from Remote** dan **Deploy HEAD Commit** di cPanel.
 
 ### Troubleshooting
 
-- **`npm tidak ditemukan`**: aktifkan aplikasi Node.js terlebih dahulu atau minta provider mengaktifkan Node.js Selector.
-- **`Access denied for user`**: periksa `DB_USER`, `DB_PASSWORD`, dan assignment user ke database.
-- **`Unknown database`**: gunakan nama lengkap dengan prefix cPanel dan pastikan `DB_AUTO_CREATE=false`.
-- **HTTP 503**: periksa startup file harus `app.js`, versi Node.js, log aplikasi, dan isi `.env`.
-- **Deploy button tidak aktif**: pastikan `.cpanel.yml` berada di root repository dan working tree server tidak memiliki perubahan Git.
-
-Dokumentasi resmi:
-
-- [cPanel Git Version Control](https://docs.cpanel.net/cpanel/files/git-version-control/)
-- [cPanel Git Deployment](https://docs.cpanel.net/knowledge-base/web-services/guide-to-git-set-up-deployment/)
-- [cPanel Node.js Application](https://docs.cpanel.net/knowledge-base/web-services/how-to-install-a-node.js-application/)
+- **Halaman 403/404**: pastikan Apache mengizinkan `.htaccess` dan document root tepat `/home/arvadigi/repositories/epistore`.
+- **API 500**: pastikan PHP memiliki ekstensi `pdo_mysql`, lalu periksa error log cPanel.
+- **Konfigurasi belum tersedia**: buat `api/config.local.php`, bukan `.env`.
+- **Access denied**: periksa nama database/user dengan prefix `arvadigi_` dan assignment ALL PRIVILEGES.
+- **Frontend lama**: jalankan build lokal dan pastikan perubahan folder `public/` ikut di-push.
 
 ## Deployment VPS Ubuntu
 
@@ -266,4 +246,3 @@ npm run db:init
 npm run build
 pm2 restart dashboard-epis --update-env
 ```
-# epistore

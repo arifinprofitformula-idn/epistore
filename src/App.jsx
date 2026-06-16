@@ -563,7 +563,8 @@ export default function App() {
 
   const S = {
     wrap: { fontFamily: "'Segoe UI', system-ui, sans-serif", background: "#0f172a", minHeight: "100vh", color: "#e2e8f0", paddingBottom: 40 },
-    header: { maxWidth: 1100, width: "calc(100% - 24px)", boxSizing: "border-box", margin: "0 auto", background: "linear-gradient(135deg,#1e3a8a,#0f172a)", padding: "20px 16px 14px", borderBottom: "3px solid #d4af37", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" },
+    headerShell: { background: "linear-gradient(135deg,#1e3a8a,#0f172a)", borderBottom: "3px solid #d4af37" },
+    header: { maxWidth: 1100, width: "calc(100% - 24px)", boxSizing: "border-box", margin: "0 auto", padding: "20px 16px 14px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" },
     headerBrand: { display: "flex", alignItems: "center", gap: 12, flex: "1 1 280px", minWidth: 0, flexWrap: "wrap" },
     logo: { width: 140, maxWidth: "42vw", height: "auto", display: "block", objectFit: "contain", flexShrink: 0 },
     loginLogo: { width: 140, maxWidth: "56vw", height: "auto", display: "block", objectFit: "contain", margin: "0 auto 12px" },
@@ -629,22 +630,24 @@ export default function App() {
 
   return (
     <div style={S.wrap}>
-      <div style={S.header}>
-        <div style={S.headerBrand}>
-          <img src={LOGO_SRC} alt="EPI" style={S.logo} />
-          <div style={{ minWidth: 0 }}>
-            <p style={{ ...S.sub, marginTop: 0 }}>Dashboard Performance & Reward 2026 | Total Target: Rp 634,4 M</p>
-            <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
-              <span style={{ fontSize: 10, fontWeight: 800, padding: "3px 10px", borderRadius: 99, background: "linear-gradient(135deg,#b8860b,#f5d78e)", color: "#1a1200" }}>GOLDGRAM</span>
-              <span style={{ fontSize: 10, fontWeight: 800, padding: "3px 10px", borderRadius: 99, background: "linear-gradient(135deg,#0f3d2e,#4a7a5e)", color: "#f5d78e" }}>MEEZAN GOLD</span>
-              <span style={{ fontSize: 10, fontWeight: 800, padding: "3px 10px", borderRadius: 99, background: "linear-gradient(135deg,#94a3b8,#e2e8f0)", color: "#0f172a" }}>SILVERGRAM</span>
+      <div style={S.headerShell}>
+        <div style={S.header}>
+          <div style={S.headerBrand}>
+            <img src={LOGO_SRC} alt="EPI" style={S.logo} />
+            <div style={{ minWidth: 0 }}>
+              <p style={{ ...S.sub, marginTop: 0 }}>Dashboard Performance & Reward 2026 | Total Target: Rp 634,4 M</p>
+              <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+                <span style={{ fontSize: 10, fontWeight: 800, padding: "3px 10px", borderRadius: 99, background: "linear-gradient(135deg,#b8860b,#f5d78e)", color: "#1a1200" }}>GOLDGRAM</span>
+                <span style={{ fontSize: 10, fontWeight: 800, padding: "3px 10px", borderRadius: 99, background: "linear-gradient(135deg,#0f3d2e,#4a7a5e)", color: "#f5d78e" }}>MEEZAN GOLD</span>
+                <span style={{ fontSize: 10, fontWeight: 800, padding: "3px 10px", borderRadius: 99, background: "linear-gradient(135deg,#94a3b8,#e2e8f0)", color: "#0f172a" }}>SILVERGRAM</span>
+              </div>
             </div>
           </div>
-        </div>
-        <div style={{ textAlign: "right", flexShrink: 0, marginLeft: "auto" }}>
-          <div style={{ fontSize: 12, color: "#d4af37", fontWeight: 800 }}>{session.name}</div>
-          <div style={{ fontSize: 10, color: "#94a3b8", marginBottom: 6 }}>{session.role === "admin" ? "Administrator" : session.role === "viewer" ? "Manajemen — Hanya Lihat" : "Brand Executive"}</div>
-          <button style={S.btnGhost} onClick={logout}>Keluar</button>
+          <div style={{ textAlign: "right", flexShrink: 0, marginLeft: "auto" }}>
+            <div style={{ fontSize: 12, color: "#d4af37", fontWeight: 800 }}>{session.name}</div>
+            <div style={{ fontSize: 10, color: "#94a3b8", marginBottom: 6 }}>{session.role === "admin" ? "Administrator" : session.role === "viewer" ? "Manajemen — Hanya Lihat" : "Brand Executive"}</div>
+            <button style={S.btnGhost} onClick={logout}>Keluar</button>
+          </div>
         </div>
       </div>
 

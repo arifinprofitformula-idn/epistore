@@ -26,10 +26,10 @@ const STORES = [
   { n: "EPIS BANDUNG BARAT", g: 8e9, m: 4e9, s: 0.3e9, seg: "START UP" },
   { n: "EPIS CILEGON RAYA", g: 8e9, m: 4e9, s: 0.5e9, seg: "START UP" },
   { n: "EPIS INDRAMAYU", g: 8e9, m: 4e9, s: 0.2e9, seg: "START UP" },
-  { n: "EPIS BPRS ATTAQWA", g: 39.2e9, m: 19.6e9, s: 0.4e9, seg: "START UP" },
-  { n: "NEW EPIS 2", g: 0, m: 0, s: 0, seg: "START UP" },
-  { n: "NEW EPIS 3", g: 0, m: 0, s: 0, seg: "START UP" },
-  { n: "NEW EPIS 4", g: 0, m: 0, s: 0, seg: "START UP" },
+  { n: "EPIS BPRS ATTAQWA", g: 9.8e9, m: 4.9e9, s: 0.1e9, seg: "START UP" },
+  { n: "NEW EPIS 2", g: 9.8e9, m: 4.9e9, s: 0.1e9, seg: "START UP" },
+  { n: "NEW EPIS 3", g: 9.8e9, m: 4.9e9, s: 0.1e9, seg: "START UP" },
+  { n: "NEW EPIS 4", g: 9.8e9, m: 4.9e9, s: 0.1e9, seg: "START UP" },
 ];
 
 const MONTHS = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];

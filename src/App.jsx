@@ -33,9 +33,9 @@ const STORES = [
   { n: "NEW EPIS 4", g: 9.8e9, m: 4.9e9, s: 0.1e9, seg: "START UP" },
 ];
 
-const MONTHS = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
-const WEIGHTS = [0.04,0.07,0.09,0.075,0.0875,0.0875,0.09,0.105,0.105,0.075,0.0875,0.0875];
-const SEASON = ["Low","Low","Normal","Normal","Normal","Normal","Normal","High","High","Normal","Normal","Low"];
+const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+const WEIGHTS = [0.04, 0.07, 0.09, 0.075, 0.0875, 0.0875, 0.09, 0.105, 0.105, 0.075, 0.0875, 0.0875];
+const SEASON = ["Low", "Low", "Normal", "Normal", "Normal", "Normal", "Normal", "High", "High", "Normal", "Normal", "Low"];
 
 const EMAS_TIERS = [
   { min: 1.5e9, rate: 0.0015, name: "Emas Tier 3" },
@@ -190,11 +190,11 @@ const fmt = (v) => v == null || isNaN(v) ? "-" : "Rp " + Math.round(v).toLocaleS
 const fmtS = (v) => {
   if (v == null || isNaN(v)) return "-";
   const a = Math.abs(v);
-  if (a >= 1e9) return "Rp " + (v/1e9).toLocaleString("id-ID",{maximumFractionDigits:2}) + " M";
-  if (a >= 1e6) return "Rp " + (v/1e6).toLocaleString("id-ID",{maximumFractionDigits:1}) + " jt";
+  if (a >= 1e9) return "Rp " + (v / 1e9).toLocaleString("id-ID", { maximumFractionDigits: 2 }) + " M";
+  if (a >= 1e6) return "Rp " + (v / 1e6).toLocaleString("id-ID", { maximumFractionDigits: 1 }) + " jt";
   return fmt(v);
 };
-const pct = (v) => v == null || isNaN(v) ? "-" : v.toLocaleString("id-ID",{maximumFractionDigits:1}) + "%";
+const pct = (v) => v == null || isNaN(v) ? "-" : v.toLocaleString("id-ID", { maximumFractionDigits: 1 }) + "%";
 const pctWeight = (v) => (v * 100).toLocaleString("id-ID", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + "%";
 
 const tierCalc = (omzet, tiers) => {
@@ -384,7 +384,7 @@ export default function App() {
     const emasTier = tierCalc(g + m, EMAS_TIERS);
     const perakTier = tierCalc(s, PERAK_TIERS);
     const target = tg + tm + ts, real = g + m + s;
-    return { tg, tm, ts, g, m, s, emasTier, perakTier, target, real, ach: target > 0 ? real/target*100 : 0 };
+    return { tg, tm, ts, g, m, s, emasTier, perakTier, target, real, ach: target > 0 ? real / target * 100 : 0 };
   }, [fStore, fMonth, fG, fM, fS]);
 
   const warn = inputPreview.real > inputPreview.target * 5 && inputPreview.real > 0;
@@ -409,7 +409,7 @@ export default function App() {
         ytdT += r.target; ytdR += r.real; ytdRw += r.totalReward;
       });
     }
-    return { totReal, totTarget, totReward, emasReward, perakReward, lolos, ytdT, ytdR, ytdRw, ytdAch: ytdT > 0 ? ytdR/ytdT*100 : 0 };
+    return { totReal, totTarget, totReward, emasReward, perakReward, lolos, ytdT, ytdR, ytdRw, ytdAch: ytdT > 0 ? ytdR / ytdT * 100 : 0 };
   }, [data, dMonth]);
 
   const dashBrandKPI = useMemo(() => {
@@ -432,7 +432,7 @@ export default function App() {
     const t = episRows.reduce((a, r) => a + r.target, 0);
     const r = episRows.reduce((a, x) => a + x.real, 0);
     const rw = episRows.reduce((a, x) => a + x.totalReward, 0);
-    return { t, r, rw, ach: t > 0 ? r/t*100 : 0 };
+    return { t, r, rw, ach: t > 0 ? r / t * 100 : 0 };
   }, [episRows]);
 
   const episBrandKPI = useMemo(() => {
@@ -521,12 +521,12 @@ export default function App() {
     lines.forEach((line, idx) => {
       if (idx === 0 && /epi.?store/i.test(line)) return; // skip header
       const parts = line.split(",").map(p => p.trim());
-      if (parts.length < 5) { errors.push(`Baris ${idx+1}: kolom tidak lengkap (butuh: EPIStore,Bulan,Gold,Meezan,Silver)`); return; }
+      if (parts.length < 5) { errors.push(`Baris ${idx + 1}: kolom tidak lengkap (butuh: EPIStore,Bulan,Gold,Meezan,Silver)`); return; }
       const [storeName, monthName, g, m, s] = parts;
       const si = STORE_NAMES.indexOf(storeName.toUpperCase());
       const mi = MONTHS.indexOf(monthName.toUpperCase());
-      if (si === -1) { errors.push(`Baris ${idx+1}: EPI Store "${storeName}" tidak ditemukan`); return; }
-      if (mi === -1) { errors.push(`Baris ${idx+1}: Bulan "${monthName}" tidak valid (gunakan JAN-DEC)`); return; }
+      if (si === -1) { errors.push(`Baris ${idx + 1}: EPI Store "${storeName}" tidak ditemukan`); return; }
+      if (mi === -1) { errors.push(`Baris ${idx + 1}: Bulan "${monthName}" tidak valid (gunakan JAN-DEC)`); return; }
       rows.push({ si, mi, g: parseNum(g), m: parseNum(m), s: parseNum(s), storeName: STORES[si].n, monthName: MONTHS[mi] });
     });
     setImportPreview({ rows, errors });
@@ -563,10 +563,10 @@ export default function App() {
 
   const S = {
     wrap: { fontFamily: "'Segoe UI', system-ui, sans-serif", background: "#0f172a", minHeight: "100vh", color: "#e2e8f0", paddingBottom: 40 },
-    header: { background: "linear-gradient(135deg,#1e3a8a,#0f172a)", padding: "20px 16px 14px", borderBottom: "3px solid #d4af37", display:"flex", justifyContent:"space-between", alignItems:"center", gap:12, flexWrap:"wrap" },
-    headerBrand: { display:"flex", alignItems:"center", gap:12, flex:"1 1 280px", minWidth:0, flexWrap:"wrap" },
-    logo: { width:140, maxWidth:"42vw", height:"auto", display:"block", objectFit:"contain", flexShrink:0 },
-    loginLogo: { width:140, maxWidth:"56vw", height:"auto", display:"block", objectFit:"contain", margin:"0 auto 12px" },
+    header: { background: "linear-gradient(135deg,#1e3a8a,#0f172a)", padding: "20px 16px 14px", borderBottom: "3px solid #d4af37", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" },
+    headerBrand: { display: "flex", alignItems: "center", gap: 12, flex: "1 1 280px", minWidth: 0, flexWrap: "wrap" },
+    logo: { width: 140, maxWidth: "42vw", height: "auto", display: "block", objectFit: "contain", flexShrink: 0 },
+    loginLogo: { width: 140, maxWidth: "56vw", height: "auto", display: "block", objectFit: "contain", margin: "0 auto 12px" },
     h1: { margin: 0, fontSize: 19, fontWeight: 800, color: "#fff", letterSpacing: 0.3 },
     sub: { margin: "4px 0 0", fontSize: 12, color: "#94a3b8" },
     tabs: { display: "flex", gap: 6, padding: "10px 12px", overflowX: "auto", background: "#1e293b", borderBottom: "1px solid #334155" },
@@ -585,35 +585,35 @@ export default function App() {
     badge: (st) => ({ display: "inline-block", padding: "2px 8px", borderRadius: 99, fontSize: 11, fontWeight: 700, color: st.c, background: st.bg }),
   };
 
-  if (loading) return <div style={{...S.wrap, display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{color:"#d4af37",fontWeight:700}}>Memuat data…</div></div>;
+  if (loading) return <div style={{ ...S.wrap, display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ color: "#d4af37", fontWeight: 700 }}>Memuat data…</div></div>;
 
   // ============ LOGIN SCREEN ============
   if (!session) {
     return (
-      <div style={{...S.wrap, display:"flex", alignItems:"center", justifyContent:"center", padding:20}}>
-        <div style={{...S.card, maxWidth:360, width:"100%"}}>
-          <div style={{textAlign:"center", marginBottom:16}}>
+      <div style={{ ...S.wrap, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+        <div style={{ ...S.card, maxWidth: 360, width: "100%" }}>
+          <div style={{ textAlign: "center", marginBottom: 16 }}>
             <img src={LOGO_SRC} alt="EPI" style={S.loginLogo} />
-            <div style={{fontWeight:800, fontSize:17, color:"#fff"}}>Dashboard EPI Store 2026</div>
-            <div style={{fontSize:12, color:"#94a3b8", marginTop:4}}>Masukkan PIN Anda untuk masuk</div>
+            <div style={{ fontWeight: 800, fontSize: 17, color: "#fff" }}>Dashboard EPI Store 2026</div>
+            <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>Masukkan PIN Anda untuk masuk</div>
           </div>
           <input
-            style={{...S.input, textAlign:"center", fontSize:22, letterSpacing:6, fontWeight:800}}
+            style={{ ...S.input, textAlign: "center", fontSize: 22, letterSpacing: 6, fontWeight: 800 }}
             type="password"
             inputMode="numeric"
             autoComplete="current-password"
             maxLength={6}
             placeholder="••••"
             value={pinInput}
-            onChange={e => { setPinInput(e.target.value.replace(/[^\d]/g,"")); setLoginErr(""); }}
+            onChange={e => { setPinInput(e.target.value.replace(/[^\d]/g, "")); setLoginErr(""); }}
             onKeyDown={e => e.key === "Enter" && doLogin()}
           />
-          {loginErr && <div style={{color:"#f87171", fontSize:12, marginTop:8, textAlign:"center"}}>{loginErr}</div>}
-          <div style={{marginTop:14}}>
+          {loginErr && <div style={{ color: "#f87171", fontSize: 12, marginTop: 8, textAlign: "center" }}>{loginErr}</div>}
+          <div style={{ marginTop: 14 }}>
             <button style={S.btn} onClick={doLogin}>Masuk</button>
           </div>
-          <div style={{marginTop:14, fontSize:11, color:"#64748b", textAlign:"center", lineHeight:1.6}}>
-            Gunakan PIN akun yang diberikan administrator.<br/>
+          <div style={{ marginTop: 14, fontSize: 11, color: "#64748b", textAlign: "center", lineHeight: 1.6 }}>
+            Gunakan PIN akun yang diberikan administrator.<br />
             Akun awal hanya dibuat saat database pertama kali diinisialisasi.
           </div>
         </div>
@@ -622,36 +622,35 @@ export default function App() {
   }
 
   const visibleTabs = session.role === "admin"
-    ? [["dash","🏠 Dashboard Nasional"],["epis","🏪 Per EPI Store"],["reward","🏆 Reward"],["input","✍️ Input Realisasi"],["import","📥 Import Data"],["access","🔐 Akses & PIN"],["setup","⚙️ Skema"]]
+    ? [["dash", "🏠 Dashboard Nasional"], ["epis", "🏪 Per EPI Store"], ["reward", "🏆 Reward"], ["input", "✍️ Input Realisasi"], ["import", "📥 Import Data"], ["access", "🔐 Akses & PIN"], ["setup", "⚙️ Skema"]]
     : session.role === "viewer"
-      ? [["dash","🏠 Dashboard Nasional"],["epis","🏪 Per EPI Store"],["reward","🏆 Reward"]]
-      : [["input","✍️ Input Realisasi"],["dash","🏠 Dashboard Nasional"],["epis","🏪 Per EPI Store"],["reward","🏆 Reward"],["setup","⚙️ Skema"]];
+      ? [["dash", "🏠 Dashboard Nasional"], ["epis", "🏪 Per EPI Store"], ["reward", "🏆 Reward"]]
+      : [["input", "✍️ Input Realisasi"], ["dash", "🏠 Dashboard Nasional"], ["epis", "🏪 Per EPI Store"], ["reward", "🏆 Reward"], ["setup", "⚙️ Skema"]];
 
   return (
     <div style={S.wrap}>
       <div style={S.header}>
         <div style={S.headerBrand}>
           <img src={LOGO_SRC} alt="EPI" style={S.logo} />
-          <div style={{minWidth:0}}>
-            <h1 style={{...S.h1, background:"linear-gradient(135deg,#cbd5e1,#94a3b8,#d4af37,#f5d78e)", WebkitBackgroundClip:"text", backgroundClip:"text", color:"transparent", fontSize:22, letterSpacing:1}}>EPI - Indonesian Bullion Ecosystem</h1>
-            <p style={S.sub}>Dashboard Performance & Reward 2026 — Tiered Reward Challenge | Total Target: Rp 634,4 M</p>
-            <div style={{display:"flex", gap:8, marginTop:8, flexWrap:"wrap"}}>
-              <span style={{fontSize:10, fontWeight:800, padding:"3px 10px", borderRadius:99, background:"linear-gradient(135deg,#b8860b,#f5d78e)", color:"#1a1200"}}>GOLDGRAM</span>
-              <span style={{fontSize:10, fontWeight:800, padding:"3px 10px", borderRadius:99, background:"linear-gradient(135deg,#0f3d2e,#4a7a5e)", color:"#f5d78e"}}>MEEZAN GOLD</span>
-              <span style={{fontSize:10, fontWeight:800, padding:"3px 10px", borderRadius:99, background:"linear-gradient(135deg,#94a3b8,#e2e8f0)", color:"#0f172a"}}>SILVERGRAM</span>
+          <div style={{ minWidth: 0 }}>
+            <p style={{ ...S.sub, marginTop: 0 }}>Dashboard Performance & Reward 2026 | Total Target: Rp 634,4 M</p>
+            <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 10, fontWeight: 800, padding: "3px 10px", borderRadius: 99, background: "linear-gradient(135deg,#b8860b,#f5d78e)", color: "#1a1200" }}>GOLDGRAM</span>
+              <span style={{ fontSize: 10, fontWeight: 800, padding: "3px 10px", borderRadius: 99, background: "linear-gradient(135deg,#0f3d2e,#4a7a5e)", color: "#f5d78e" }}>MEEZAN GOLD</span>
+              <span style={{ fontSize: 10, fontWeight: 800, padding: "3px 10px", borderRadius: 99, background: "linear-gradient(135deg,#94a3b8,#e2e8f0)", color: "#0f172a" }}>SILVERGRAM</span>
             </div>
           </div>
         </div>
-        <div style={{textAlign:"right", flexShrink:0, marginLeft:"auto"}}>
-          <div style={{fontSize:12, color:"#d4af37", fontWeight:800}}>{session.name}</div>
-          <div style={{fontSize:10, color:"#94a3b8", marginBottom:6}}>{session.role === "admin" ? "Administrator" : session.role === "viewer" ? "Manajemen — Hanya Lihat" : "Brand Executive"}</div>
+        <div style={{ textAlign: "right", flexShrink: 0, marginLeft: "auto" }}>
+          <div style={{ fontSize: 12, color: "#d4af37", fontWeight: 800 }}>{session.name}</div>
+          <div style={{ fontSize: 10, color: "#94a3b8", marginBottom: 6 }}>{session.role === "admin" ? "Administrator" : session.role === "viewer" ? "Manajemen — Hanya Lihat" : "Brand Executive"}</div>
           <button style={S.btnGhost} onClick={logout}>Keluar</button>
         </div>
       </div>
 
       <div style={S.tabs}>
-        {visibleTabs.map(([k,l]) => (
-          <button key={k} style={S.tab(tab===k)} onClick={() => setTab(k)}>{l}</button>
+        {visibleTabs.map(([k, l]) => (
+          <button key={k} style={S.tab(tab === k)} onClick={() => setTab(k)}>{l}</button>
         ))}
       </div>
 
@@ -660,14 +659,14 @@ export default function App() {
         {tab === "input" && session.role !== "viewer" && (
           <div>
             <div style={S.card}>
-              <div style={{fontWeight:800, fontSize:15, marginBottom:10, color:"#d4af37"}}>Form Submit Realisasi Bulanan</div>
-              <div style={{fontSize:12, color:"#94a3b8", marginBottom:10}}>
-                Login sebagai: <b style={{color:"#e2e8f0"}}>{session.name}</b>
+              <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 10, color: "#d4af37" }}>Form Submit Realisasi Bulanan</div>
+              <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 10 }}>
+                Login sebagai: <b style={{ color: "#e2e8f0" }}>{session.name}</b>
                 {session.role === "be" && (
-                  <span> | Brand: <b style={{color:"#d4af37"}}>{BRANDS.filter(brand => assignedBrandCodes.includes(brand.code)).map(brand => brand.name).join(", ") || "Belum ditugaskan"}</b></span>
+                  <span> | Brand: <b style={{ color: "#d4af37" }}>{BRANDS.filter(brand => assignedBrandCodes.includes(brand.code)).map(brand => brand.name).join(", ") || "Belum ditugaskan"}</b></span>
                 )}
               </div>
-              <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:10}}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
                 <div>
                   <label style={S.label}>EPI Store</label>
                   <select style={S.select} value={fStore} onChange={e => setFStore(+e.target.value)}>
@@ -681,7 +680,7 @@ export default function App() {
                   </select>
                 </div>
               </div>
-              <div style={{display:"grid", gridTemplateColumns:"1fr", gap:10}}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 10 }}>
                 {[
                   ["GOLDGRAM", fG, setFG, inputPreview.tg, "#1a1200", "linear-gradient(135deg,#b8860b,#f5d78e)"],
                   ["MEEZAN GOLD", fM, setFM, inputPreview.tm, "#f5d78e", "linear-gradient(135deg,#0f3d2e,#4a7a5e)"],
@@ -690,15 +689,15 @@ export default function App() {
                   const brand = BRANDS.find((item) => item.name === name);
                   const editable = canEditBrand(brand.code);
                   return (
-                  <div key={name}>
-                    <label style={S.label}>
-                      <span style={{fontSize:10, fontWeight:800, padding:"2px 8px", borderRadius:99, background:bgGrad, color:txtCol, marginRight:6}}>{name}</span>
-                      Target bulan ini: {fmtS(tgt)}
-                      {!editable && <span style={{color:"#64748b", marginLeft:6}}>(hanya baca)</span>}
-                    </label>
-                    <input style={{...S.input, opacity: editable ? 1 : 0.55}} disabled={!editable} inputMode="numeric" placeholder="Realisasi omzet (Rp)" value={val}
-                      onChange={e => set(fmtInput(e.target.value))} />
-                  </div>
+                    <div key={name}>
+                      <label style={S.label}>
+                        <span style={{ fontSize: 10, fontWeight: 800, padding: "2px 8px", borderRadius: 99, background: bgGrad, color: txtCol, marginRight: 6 }}>{name}</span>
+                        Target bulan ini: {fmtS(tgt)}
+                        {!editable && <span style={{ color: "#64748b", marginLeft: 6 }}>(hanya baca)</span>}
+                      </label>
+                      <input style={{ ...S.input, opacity: editable ? 1 : 0.55 }} disabled={!editable} inputMode="numeric" placeholder="Realisasi omzet (Rp)" value={val}
+                        onChange={e => set(fmtInput(e.target.value))} />
+                    </div>
                   );
                 })}
                 <div>
@@ -707,26 +706,26 @@ export default function App() {
                 </div>
               </div>
 
-              <div style={{marginTop:12, padding:12, borderRadius:10, background:"#0f172a", border:"1px solid #334155"}}>
-                <div style={{fontSize:12, color:"#94a3b8", fontWeight:700, marginBottom:6}}>PREVIEW OTOMATIS</div>
-                <div style={{display:"flex", flexWrap:"wrap", gap:14, fontSize:13}}>
-                  <div>Ach Total: <b style={{color: inputPreview.ach >= 100 ? "#4ade80" : inputPreview.ach >= 75 ? "#60a5fa" : "#f87171"}}>{pct(inputPreview.ach)}</b></div>
-                  <div>Emas ({fmtS(inputPreview.g + inputPreview.m)}): <b style={{color:"#fbbf24"}}>{inputPreview.emasTier.name}</b> → {fmt(inputPreview.emasTier.reward)}</div>
-                  <div>Perak ({fmtS(inputPreview.s)}): <b style={{color:"#cbd5e1"}}>{inputPreview.perakTier.name}</b> → {fmt(inputPreview.perakTier.reward)}</div>
-                  <div>Total Reward: <b style={{color:"#d4af37"}}>{fmt(inputPreview.emasTier.reward + inputPreview.perakTier.reward)}</b></div>
+              <div style={{ marginTop: 12, padding: 12, borderRadius: 10, background: "#0f172a", border: "1px solid #334155" }}>
+                <div style={{ fontSize: 12, color: "#94a3b8", fontWeight: 700, marginBottom: 6 }}>PREVIEW OTOMATIS</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 14, fontSize: 13 }}>
+                  <div>Ach Total: <b style={{ color: inputPreview.ach >= 100 ? "#4ade80" : inputPreview.ach >= 75 ? "#60a5fa" : "#f87171" }}>{pct(inputPreview.ach)}</b></div>
+                  <div>Emas ({fmtS(inputPreview.g + inputPreview.m)}): <b style={{ color: "#fbbf24" }}>{inputPreview.emasTier.name}</b> → {fmt(inputPreview.emasTier.reward)}</div>
+                  <div>Perak ({fmtS(inputPreview.s)}): <b style={{ color: "#cbd5e1" }}>{inputPreview.perakTier.name}</b> → {fmt(inputPreview.perakTier.reward)}</div>
+                  <div>Total Reward: <b style={{ color: "#d4af37" }}>{fmt(inputPreview.emasTier.reward + inputPreview.perakTier.reward)}</b></div>
                 </div>
-                {warn && <div style={{marginTop:8, fontSize:12, color:"#fb923c"}}>⚠️ Realisasi &gt;5× target bulanan — pastikan satuan Rupiah penuh (bukan ribuan/jutaan).</div>}
+                {warn && <div style={{ marginTop: 8, fontSize: 12, color: "#fb923c" }}>⚠️ Realisasi &gt;5× target bulanan — pastikan satuan Rupiah penuh (bukan ribuan/jutaan).</div>}
               </div>
 
-              <div style={{marginTop:12}}>
-                <button style={{...S.btn, opacity: saving || assignedBrandCodes.length === 0 ? 0.6 : 1}} disabled={saving || assignedBrandCodes.length === 0} onClick={save}>
+              <div style={{ marginTop: 12 }}>
+                <button style={{ ...S.btn, opacity: saving || assignedBrandCodes.length === 0 ? 0.6 : 1 }} disabled={saving || assignedBrandCodes.length === 0} onClick={save}>
                   {saving ? "Menyimpan…" : "💾 Submit Realisasi"}
                 </button>
-                {msg && <div style={{marginTop:8, fontSize:13, fontWeight:700, color: msg.ok ? "#4ade80" : "#f87171", textAlign:"center"}}>{msg.t}</div>}
+                {msg && <div style={{ marginTop: 8, fontSize: 13, fontWeight: 700, color: msg.ok ? "#4ade80" : "#f87171", textAlign: "center" }}>{msg.t}</div>}
               </div>
             </div>
             <div style={S.card}>
-              <div style={{fontSize:12, color:"#94a3b8"}}>
+              <div style={{ fontSize: 12, color: "#94a3b8" }}>
                 Seluruh data EPIS dapat dibaca oleh semua pengguna. Anda dapat memilih semua EPI Store, tetapi hanya kolom brand yang ditugaskan kepada akun Anda yang dapat diubah.
               </div>
             </div>
@@ -736,57 +735,57 @@ export default function App() {
         {/* ============ DASHBOARD NASIONAL ============ */}
         {tab === "dash" && (
           <div>
-            <div style={{display:"flex", gap:10, marginBottom:12, flexWrap:"wrap"}}>
-              <div style={{flex:"1 1 140px"}}>
+            <div style={{ display: "flex", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
+              <div style={{ flex: "1 1 140px" }}>
                 <label style={S.label}>Bulan Laporan</label>
                 <select style={S.select} value={dMonth} onChange={e => setDMonth(+e.target.value)}>
                   {MONTHS.map((m, i) => <option key={i} value={i}>{m}</option>)}
                 </select>
               </div>
-              <div style={{flex:"1 1 140px"}}>
+              <div style={{ flex: "1 1 140px" }}>
                 <label style={S.label}>Segmentasi</label>
                 <select style={S.select} value={dSeg} onChange={e => setDSeg(e.target.value)}>
-                  {["ALL","TOP","GROWTH","START UP"].map(s => <option key={s} value={s}>{s}</option>)}
+                  {["ALL", "TOP", "GROWTH", "START UP"].map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
             </div>
 
-            <div style={{display:"flex", gap:10, flexWrap:"wrap", marginBottom:12}}>
-              <div style={S.kpi}><div style={S.label}>Realisasi {MONTHS[dMonth]}</div><div style={S.kpiV}>{fmtS(dashKPI.totReal)}</div><div style={{fontSize:11,color:"#94a3b8"}}>Target: {fmtS(dashKPI.totTarget)}</div></div>
-              <div style={S.kpi}><div style={S.label}>Reward Cair {MONTHS[dMonth]}</div><div style={{...S.kpiV, color:"#d4af37"}}>{fmt(dashKPI.totReward)}</div><div style={{fontSize:11,color:"#94a3b8"}}>Emas {fmt(dashKPI.emasReward)} | Perak {fmt(dashKPI.perakReward)}</div></div>
-              <div style={S.kpi}><div style={S.label}>EPIS Lolos Reward</div><div style={S.kpiV}>{dashKPI.lolos} <span style={{fontSize:12,color:"#94a3b8"}}>/ 28</span></div></div>
-              <div style={S.kpi}><div style={S.label}>YTD s.d. {MONTHS[dMonth]}</div><div style={S.kpiV}>{pct(dashKPI.ytdAch)}</div><div style={{fontSize:11,color:"#94a3b8"}}>{fmtS(dashKPI.ytdR)} / {fmtS(dashKPI.ytdT)} | Reward YTD: {fmtS(dashKPI.ytdRw)}</div></div>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
+              <div style={S.kpi}><div style={S.label}>Realisasi {MONTHS[dMonth]}</div><div style={S.kpiV}>{fmtS(dashKPI.totReal)}</div><div style={{ fontSize: 11, color: "#94a3b8" }}>Target: {fmtS(dashKPI.totTarget)}</div></div>
+              <div style={S.kpi}><div style={S.label}>Reward Cair {MONTHS[dMonth]}</div><div style={{ ...S.kpiV, color: "#d4af37" }}>{fmt(dashKPI.totReward)}</div><div style={{ fontSize: 11, color: "#94a3b8" }}>Emas {fmt(dashKPI.emasReward)} | Perak {fmt(dashKPI.perakReward)}</div></div>
+              <div style={S.kpi}><div style={S.label}>EPIS Lolos Reward</div><div style={S.kpiV}>{dashKPI.lolos} <span style={{ fontSize: 12, color: "#94a3b8" }}>/ 28</span></div></div>
+              <div style={S.kpi}><div style={S.label}>YTD s.d. {MONTHS[dMonth]}</div><div style={S.kpiV}>{pct(dashKPI.ytdAch)}</div><div style={{ fontSize: 11, color: "#94a3b8" }}>{fmtS(dashKPI.ytdR)} / {fmtS(dashKPI.ytdT)} | Reward YTD: {fmtS(dashKPI.ytdRw)}</div></div>
             </div>
 
-            <div style={{...S.card, padding:12}}>
-              <div style={{fontSize:14, fontWeight:800, color:"#e2e8f0", marginBottom:10}}>
+            <div style={{ ...S.card, padding: 12 }}>
+              <div style={{ fontSize: 14, fontWeight: 800, color: "#e2e8f0", marginBottom: 10 }}>
                 Perolehan Omzet per Brand — {MONTHS[dMonth]}
-                <span style={{fontSize:11, color:"#94a3b8", fontWeight:500, marginLeft:6}}>({dSeg === "ALL" ? "Seluruh Segmentasi" : dSeg})</span>
+                <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 500, marginLeft: 6 }}>({dSeg === "ALL" ? "Seluruh Segmentasi" : dSeg})</span>
               </div>
-              <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(230px,1fr))", gap:10}}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(230px,1fr))", gap: 10 }}>
                 {dashBrandKPI.map((brand) => {
                   const positive = brand.gap >= 0;
                   const progress = Math.min(Math.max(brand.achievement, 0), 100);
                   return (
-                    <div key={brand.code} style={{background:"#0f172a", border:"1px solid #334155", borderRadius:10, padding:12}}>
-                      <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", gap:8, marginBottom:10}}>
-                        <span style={{fontSize:10, fontWeight:800, padding:"3px 9px", borderRadius:99, background:brand.gradient, color:brand.code === "goldgram" ? "#1a1200" : brand.code === "silvergram" ? "#0f172a" : "#f5d78e"}}>{brand.name}</span>
-                        <span style={{fontSize:16, fontWeight:800, color:brand.achievement >= 100 ? "#4ade80" : brand.achievement >= 75 ? "#60a5fa" : "#f87171"}}>{pct(brand.achievement)}</span>
+                    <div key={brand.code} style={{ background: "#0f172a", border: "1px solid #334155", borderRadius: 10, padding: 12 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                        <span style={{ fontSize: 10, fontWeight: 800, padding: "3px 9px", borderRadius: 99, background: brand.gradient, color: brand.code === "goldgram" ? "#1a1200" : brand.code === "silvergram" ? "#0f172a" : "#f5d78e" }}>{brand.name}</span>
+                        <span style={{ fontSize: 16, fontWeight: 800, color: brand.achievement >= 100 ? "#4ade80" : brand.achievement >= 75 ? "#60a5fa" : "#f87171" }}>{pct(brand.achievement)}</span>
                       </div>
-                      <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:10}}>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
                         <div>
-                          <div style={{fontSize:10, color:"#64748b", marginBottom:2}}>TARGET BULAN</div>
-                          <div style={{fontSize:14, fontWeight:700}}>{fmtS(brand.target)}</div>
+                          <div style={{ fontSize: 10, color: "#64748b", marginBottom: 2 }}>TARGET BULAN</div>
+                          <div style={{ fontSize: 14, fontWeight: 700 }}>{fmtS(brand.target)}</div>
                         </div>
                         <div>
-                          <div style={{fontSize:10, color:"#64748b", marginBottom:2}}>REALISASI OMZET</div>
-                          <div style={{fontSize:14, fontWeight:800, color:brand.color}}>{fmtS(brand.real)}</div>
+                          <div style={{ fontSize: 10, color: "#64748b", marginBottom: 2 }}>REALISASI OMZET</div>
+                          <div style={{ fontSize: 14, fontWeight: 800, color: brand.color }}>{fmtS(brand.real)}</div>
                         </div>
                       </div>
-                      <div style={{height:7, borderRadius:99, background:"#1e293b", overflow:"hidden", marginBottom:8}}>
-                        <div style={{height:"100%", width:`${progress}%`, borderRadius:99, background:brand.gradient}} />
+                      <div style={{ height: 7, borderRadius: 99, background: "#1e293b", overflow: "hidden", marginBottom: 8 }}>
+                        <div style={{ height: "100%", width: `${progress}%`, borderRadius: 99, background: brand.gradient }} />
                       </div>
-                      <div style={{fontSize:11, color:positive ? "#4ade80" : "#f87171"}}>
+                      <div style={{ fontSize: 11, color: positive ? "#4ade80" : "#f87171" }}>
                         {positive ? "Surplus" : "Gap"}: {fmtS(Math.abs(brand.gap))}
                       </div>
                     </div>
@@ -795,22 +794,22 @@ export default function App() {
               </div>
             </div>
 
-            <div style={{...S.card, overflowX:"auto", padding:8}}>
-              <table style={{borderCollapse:"collapse", width:"100%"}}>
+            <div style={{ ...S.card, overflowX: "auto", padding: 8 }}>
+              <table style={{ borderCollapse: "collapse", width: "100%" }}>
                 <thead><tr>
-                  {["EPI Store","Seg","Target","Realisasi","Ach %","Reward","Status"].map(h => <th key={h} style={S.th}>{h}</th>)}
+                  {["EPI Store", "Seg", "Target", "Realisasi", "Ach %", "Reward", "Status"].map(h => <th key={h} style={S.th}>{h}</th>)}
                 </tr></thead>
                 <tbody>
-                  {dashRows.sort((a,b) => b.ach - a.ach).map((r, i) => {
+                  {dashRows.sort((a, b) => b.ach - a.ach).map((r, i) => {
                     const st = statusOf(r.ach, r.hasInput);
                     return (
                       <tr key={i}>
-                        <td style={{...S.td, fontWeight:700}}>{r.st.n}</td>
-                        <td style={S.td}><span style={{fontSize:10, color:"#94a3b8"}}>{r.st.seg}</span></td>
+                        <td style={{ ...S.td, fontWeight: 700 }}>{r.st.n}</td>
+                        <td style={S.td}><span style={{ fontSize: 10, color: "#94a3b8" }}>{r.st.seg}</span></td>
                         <td style={S.td}>{fmtS(r.target)}</td>
                         <td style={S.td}>{r.hasInput ? fmtS(r.real) : "-"}</td>
-                        <td style={{...S.td, fontWeight:700, color: st.c}}>{r.hasInput ? pct(r.ach) : "-"}</td>
-                        <td style={{...S.td, color:"#d4af37", fontWeight:600}}>{r.totalReward > 0 ? fmt(r.totalReward) : "-"}</td>
+                        <td style={{ ...S.td, fontWeight: 700, color: st.c }}>{r.hasInput ? pct(r.ach) : "-"}</td>
+                        <td style={{ ...S.td, color: "#d4af37", fontWeight: 600 }}>{r.totalReward > 0 ? fmt(r.totalReward) : "-"}</td>
                         <td style={S.td}><span style={S.badge(st)}>{st.t}</span></td>
                       </tr>
                     );
@@ -820,11 +819,11 @@ export default function App() {
             </div>
 
             {STORES[3] && dSeg !== "GROWTH" && dSeg !== "START UP" && (
-              <div style={{...S.card, borderColor:"#92400e", background:"#1c1410"}}>
-                <div style={{fontSize:12, color:"#fbbf24", fontWeight:700, marginBottom:4}}>📌 Catatan Evaluasi: EPIS Tasikmalaya</div>
-                <div style={{fontSize:12, color:"#cbd5e1", lineHeight:1.6}}>
-                  Target tahunan EPIS Tasikmalaya (Rp 100,2 M, kontribusi 15,79%) jauh di atas baseline 2025 (Rp 9,6 M) — by design sesuai keputusan Coach. 
-                  Disarankan evaluasi pencapaian Semester 1 untuk menentukan apakah penyesuaian distribusi bobot bulanan H2 diperlukan, 
+              <div style={{ ...S.card, borderColor: "#92400e", background: "#1c1410" }}>
+                <div style={{ fontSize: 12, color: "#fbbf24", fontWeight: 700, marginBottom: 4 }}>📌 Catatan Evaluasi: EPIS Tasikmalaya</div>
+                <div style={{ fontSize: 12, color: "#cbd5e1", lineHeight: 1.6 }}>
+                  Target tahunan EPIS Tasikmalaya (Rp 100,2 M, kontribusi 15,79%) jauh di atas baseline 2025 (Rp 9,6 M) — by design sesuai keputusan Coach.
+                  Disarankan evaluasi pencapaian Semester 1 untuk menentukan apakah penyesuaian distribusi bobot bulanan H2 diperlukan,
                   namun <b>target tahunan per kategori logam mulia (Gold/Meezan/Silver) tetap sesuai angka awal</b>.
                 </div>
               </div>
@@ -835,51 +834,51 @@ export default function App() {
         {/* ============ PER EPI STORE ============ */}
         {tab === "epis" && (
           <div>
-            <div style={{marginBottom:12}}>
+            <div style={{ marginBottom: 12 }}>
               <label style={S.label}>Pilih EPI Store</label>
               <select style={S.select} value={pStore} onChange={e => setPStore(+e.target.value)}>
                 {STORES.map((s, i) => <option key={i} value={i}>{s.n} ({s.seg})</option>)}
               </select>
             </div>
 
-            <div style={{display:"flex", gap:10, flexWrap:"wrap", marginBottom:12}}>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
               <div style={S.kpi}><div style={S.label}>Target Tahun</div><div style={S.kpiV}>{fmtS(episYr.t)}</div></div>
               <div style={S.kpi}><div style={S.label}>Realisasi Tahun</div><div style={S.kpiV}>{fmtS(episYr.r)}</div></div>
-              <div style={S.kpi}><div style={S.label}>Ach Tahun</div><div style={{...S.kpiV, color: episYr.ach>=100?"#4ade80":episYr.ach>=75?"#60a5fa":"#f87171"}}>{pct(episYr.ach)}</div></div>
-              <div style={S.kpi}><div style={S.label}>Total Reward Tahun</div><div style={{...S.kpiV, color:"#d4af37"}}>{fmt(episYr.rw)}</div></div>
+              <div style={S.kpi}><div style={S.label}>Ach Tahun</div><div style={{ ...S.kpiV, color: episYr.ach >= 100 ? "#4ade80" : episYr.ach >= 75 ? "#60a5fa" : "#f87171" }}>{pct(episYr.ach)}</div></div>
+              <div style={S.kpi}><div style={S.label}>Total Reward Tahun</div><div style={{ ...S.kpiV, color: "#d4af37" }}>{fmt(episYr.rw)}</div></div>
             </div>
 
-            <div style={{...S.card, padding:12}}>
-              <div style={{fontSize:14, fontWeight:800, color:"#e2e8f0", marginBottom:4}}>
+            <div style={{ ...S.card, padding: 12 }}>
+              <div style={{ fontSize: 14, fontWeight: 800, color: "#e2e8f0", marginBottom: 4 }}>
                 Pencapaian Omzet per Brand
               </div>
-              <div style={{fontSize:11, color:"#94a3b8", marginBottom:10}}>
+              <div style={{ fontSize: 11, color: "#94a3b8", marginBottom: 10 }}>
                 {STORES[pStore].n} — akumulasi realisasi yang telah tercatat dibanding target tahunan
               </div>
-              <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(230px,1fr))", gap:10}}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(230px,1fr))", gap: 10 }}>
                 {episBrandKPI.map((brand) => {
                   const positive = brand.gap >= 0;
                   const progress = Math.min(Math.max(brand.achievement, 0), 100);
                   return (
-                    <div key={brand.code} style={{background:"#0f172a", border:"1px solid #334155", borderRadius:10, padding:12}}>
-                      <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", gap:8, marginBottom:10}}>
-                        <span style={{fontSize:10, fontWeight:800, padding:"3px 9px", borderRadius:99, background:brand.gradient, color:brand.code === "goldgram" ? "#1a1200" : brand.code === "silvergram" ? "#0f172a" : "#f5d78e"}}>{brand.name}</span>
-                        <span style={{fontSize:16, fontWeight:800, color:brand.achievement >= 100 ? "#4ade80" : brand.achievement >= 75 ? "#60a5fa" : "#f87171"}}>{pct(brand.achievement)}</span>
+                    <div key={brand.code} style={{ background: "#0f172a", border: "1px solid #334155", borderRadius: 10, padding: 12 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                        <span style={{ fontSize: 10, fontWeight: 800, padding: "3px 9px", borderRadius: 99, background: brand.gradient, color: brand.code === "goldgram" ? "#1a1200" : brand.code === "silvergram" ? "#0f172a" : "#f5d78e" }}>{brand.name}</span>
+                        <span style={{ fontSize: 16, fontWeight: 800, color: brand.achievement >= 100 ? "#4ade80" : brand.achievement >= 75 ? "#60a5fa" : "#f87171" }}>{pct(brand.achievement)}</span>
                       </div>
-                      <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:10}}>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
                         <div>
-                          <div style={{fontSize:10, color:"#64748b", marginBottom:2}}>TARGET TAHUN</div>
-                          <div style={{fontSize:14, fontWeight:700}}>{fmtS(brand.target)}</div>
+                          <div style={{ fontSize: 10, color: "#64748b", marginBottom: 2 }}>TARGET TAHUN</div>
+                          <div style={{ fontSize: 14, fontWeight: 700 }}>{fmtS(brand.target)}</div>
                         </div>
                         <div>
-                          <div style={{fontSize:10, color:"#64748b", marginBottom:2}}>REALISASI OMZET</div>
-                          <div style={{fontSize:14, fontWeight:800, color:brand.color}}>{fmtS(brand.real)}</div>
+                          <div style={{ fontSize: 10, color: "#64748b", marginBottom: 2 }}>REALISASI OMZET</div>
+                          <div style={{ fontSize: 14, fontWeight: 800, color: brand.color }}>{fmtS(brand.real)}</div>
                         </div>
                       </div>
-                      <div style={{height:7, borderRadius:99, background:"#1e293b", overflow:"hidden", marginBottom:8}}>
-                        <div style={{height:"100%", width:`${progress}%`, borderRadius:99, background:brand.gradient}} />
+                      <div style={{ height: 7, borderRadius: 99, background: "#1e293b", overflow: "hidden", marginBottom: 8 }}>
+                        <div style={{ height: "100%", width: `${progress}%`, borderRadius: 99, background: brand.gradient }} />
                       </div>
-                      <div style={{fontSize:11, color:positive ? "#4ade80" : "#f87171"}}>
+                      <div style={{ fontSize: 11, color: positive ? "#4ade80" : "#f87171" }}>
                         {positive ? "Surplus" : "Gap"}: {fmtS(Math.abs(brand.gap))}
                       </div>
                     </div>
@@ -888,26 +887,26 @@ export default function App() {
               </div>
             </div>
 
-            <div style={{...S.card, overflowX:"auto", padding:8}}>
-              <table style={{borderCollapse:"collapse", width:"100%"}}>
+            <div style={{ ...S.card, overflowX: "auto", padding: 8 }}>
+              <table style={{ borderCollapse: "collapse", width: "100%" }}>
                 <thead><tr>
-                  {["Bulan","Target","Realisasi","Gap","Ach %","Tier Emas","Tier Perak","Reward","Status","BE"].map(h => <th key={h} style={S.th}>{h}</th>)}
+                  {["Bulan", "Target", "Realisasi", "Gap", "Ach %", "Tier Emas", "Tier Perak", "Reward", "Status", "BE"].map(h => <th key={h} style={S.th}>{h}</th>)}
                 </tr></thead>
                 <tbody>
                   {episRows.map((r, mi) => {
                     const st = statusOf(r.ach, r.hasInput);
                     return (
                       <tr key={mi}>
-                        <td style={{...S.td, fontWeight:700}}>{MONTHS[mi]}</td>
+                        <td style={{ ...S.td, fontWeight: 700 }}>{MONTHS[mi]}</td>
                         <td style={S.td}>{fmtS(r.target)}</td>
                         <td style={S.td}>{r.hasInput ? fmtS(r.real) : "-"}</td>
-                        <td style={{...S.td, color: r.real - r.target >= 0 ? "#4ade80" : "#f87171"}}>{r.hasInput ? fmtS(r.real - r.target) : "-"}</td>
-                        <td style={{...S.td, fontWeight:700, color: st.c}}>{r.hasInput ? pct(r.ach) : "-"}</td>
+                        <td style={{ ...S.td, color: r.real - r.target >= 0 ? "#4ade80" : "#f87171" }}>{r.hasInput ? fmtS(r.real - r.target) : "-"}</td>
+                        <td style={{ ...S.td, fontWeight: 700, color: st.c }}>{r.hasInput ? pct(r.ach) : "-"}</td>
                         <td style={S.td}>{r.hasInput ? r.emasTier.name : "-"}</td>
                         <td style={S.td}>{r.hasInput ? r.perakTier.name : "-"}</td>
-                        <td style={{...S.td, color:"#d4af37", fontWeight:600}}>{r.totalReward > 0 ? fmt(r.totalReward) : "-"}</td>
+                        <td style={{ ...S.td, color: "#d4af37", fontWeight: 600 }}>{r.totalReward > 0 ? fmt(r.totalReward) : "-"}</td>
                         <td style={S.td}><span style={S.badge(st)}>{st.t}</span></td>
-                        <td style={{...S.td, fontSize:11, color:"#94a3b8"}}>{r.be || "-"}</td>
+                        <td style={{ ...S.td, fontSize: 11, color: "#94a3b8" }}>{r.be || "-"}</td>
                       </tr>
                     );
                   })}
@@ -920,56 +919,56 @@ export default function App() {
         {/* ============ REWARD TAB ============ */}
         {tab === "reward" && (
           <div>
-            <div style={{marginBottom:12}}>
+            <div style={{ marginBottom: 12 }}>
               <label style={S.label}>Bulan Laporan</label>
               <select style={S.select} value={rMonth} onChange={e => setRMonth(+e.target.value)}>
                 {MONTHS.map((m, i) => <option key={i} value={i}>{m}</option>)}
               </select>
             </div>
 
-            <div style={{...S.card, overflowX:"auto", padding:8}}>
-              <div style={{fontWeight:800, fontSize:14, padding:"6px 8px", display:"flex", alignItems:"center", gap:8}}>
-                <span style={{background:"linear-gradient(135deg,#cbd5e1,#94a3b8,#d4af37,#f5d78e)", WebkitBackgroundClip:"text", backgroundClip:"text", color:"transparent"}}>Detail Reward {MONTHS[rMonth]} (per EPI Store)</span>
+            <div style={{ ...S.card, overflowX: "auto", padding: 8 }}>
+              <div style={{ fontWeight: 800, fontSize: 14, padding: "6px 8px", display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ background: "linear-gradient(135deg,#cbd5e1,#94a3b8,#d4af37,#f5d78e)", WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}>Detail Reward {MONTHS[rMonth]} (per EPI Store)</span>
               </div>
-              <table style={{borderCollapse:"collapse", width:"100%"}}>
+              <table style={{ borderCollapse: "collapse", width: "100%" }}>
                 <thead><tr>
                   {["EPI Store",
-                    <span key="ge" style={{fontSize:10, fontWeight:800, padding:"2px 8px", borderRadius:99, background:"linear-gradient(135deg,#b8860b,#f5d78e)", color:"#1a1200"}}>Omzet Emas</span>,
-                    "Tier Emas","Reward Emas",
-                    <span key="pe" style={{fontSize:10, fontWeight:800, padding:"2px 8px", borderRadius:99, background:"linear-gradient(135deg,#94a3b8,#e2e8f0)", color:"#0f172a"}}>Omzet Perak</span>,
-                    "Tier Perak","Reward Perak","Total Reward"].map((h,hi) => <th key={hi} style={S.th}>{h}</th>)}
+                    <span key="ge" style={{ fontSize: 10, fontWeight: 800, padding: "2px 8px", borderRadius: 99, background: "linear-gradient(135deg,#b8860b,#f5d78e)", color: "#1a1200" }}>Omzet Emas</span>,
+                    "Tier Emas", "Reward Emas",
+                    <span key="pe" style={{ fontSize: 10, fontWeight: 800, padding: "2px 8px", borderRadius: 99, background: "linear-gradient(135deg,#94a3b8,#e2e8f0)", color: "#0f172a" }}>Omzet Perak</span>,
+                    "Tier Perak", "Reward Perak", "Total Reward"].map((h, hi) => <th key={hi} style={S.th}>{h}</th>)}
                 </tr></thead>
                 <tbody>
                   {rewardRows.map((r, i) => (
-                    <tr key={i} style={{opacity: r.hasInput ? 1 : 0.45}}>
-                      <td style={{...S.td, fontWeight:700}}>{r.st.n}</td>
+                    <tr key={i} style={{ opacity: r.hasInput ? 1 : 0.45 }}>
+                      <td style={{ ...S.td, fontWeight: 700 }}>{r.st.n}</td>
                       <td style={S.td}>{r.hasInput ? fmtS(r.emasOmzet) : "-"}</td>
-                      <td style={{...S.td, color: r.emasTier.rate > 0 ? "#fbbf24" : "#64748b"}}>{r.hasInput ? r.emasTier.name : "-"}</td>
+                      <td style={{ ...S.td, color: r.emasTier.rate > 0 ? "#fbbf24" : "#64748b" }}>{r.hasInput ? r.emasTier.name : "-"}</td>
                       <td style={S.td}>{r.emasTier.reward > 0 ? fmt(r.emasTier.reward) : "-"}</td>
                       <td style={S.td}>{r.hasInput ? fmtS(r.perakOmzet) : "-"}</td>
-                      <td style={{...S.td, color: r.perakTier.rate > 0 ? "#cbd5e1" : "#64748b"}}>{r.hasInput ? r.perakTier.name : "-"}</td>
+                      <td style={{ ...S.td, color: r.perakTier.rate > 0 ? "#cbd5e1" : "#64748b" }}>{r.hasInput ? r.perakTier.name : "-"}</td>
                       <td style={S.td}>{r.perakTier.reward > 0 ? fmt(r.perakTier.reward) : "-"}</td>
-                      <td style={{...S.td, color:"#d4af37", fontWeight:800}}>{r.totalReward > 0 ? fmt(r.totalReward) : "Rp 0"}</td>
+                      <td style={{ ...S.td, color: "#d4af37", fontWeight: 800 }}>{r.totalReward > 0 ? fmt(r.totalReward) : "Rp 0"}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
 
-            <div style={{...S.card, overflowX:"auto", padding:8}}>
-              <div style={{fontWeight:800, fontSize:14, color:"#d4af37", padding:"6px 8px"}}>🏆 Leaderboard Reward Akumulasi (Full Year)</div>
-              <table style={{borderCollapse:"collapse", width:"100%"}}>
-                <thead><tr>{["#","EPI Store","Total Reward YTD"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
+            <div style={{ ...S.card, overflowX: "auto", padding: 8 }}>
+              <div style={{ fontWeight: 800, fontSize: 14, color: "#d4af37", padding: "6px 8px" }}>🏆 Leaderboard Reward Akumulasi (Full Year)</div>
+              <table style={{ borderCollapse: "collapse", width: "100%" }}>
+                <thead><tr>{["#", "EPI Store", "Total Reward YTD"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
                 <tbody>
                   {rewardYTD.filter(r => r.rw > 0).map((r, i) => (
                     <tr key={i}>
-                      <td style={{...S.td, fontWeight:800, color: i<3 ? "#d4af37" : "#94a3b8"}}>{i+1}</td>
-                      <td style={{...S.td, fontWeight:700}}>{r.n}</td>
-                      <td style={{...S.td, color:"#d4af37", fontWeight:700}}>{fmt(r.rw)}</td>
+                      <td style={{ ...S.td, fontWeight: 800, color: i < 3 ? "#d4af37" : "#94a3b8" }}>{i + 1}</td>
+                      <td style={{ ...S.td, fontWeight: 700 }}>{r.n}</td>
+                      <td style={{ ...S.td, color: "#d4af37", fontWeight: 700 }}>{fmt(r.rw)}</td>
                     </tr>
                   ))}
                   {rewardYTD.filter(r => r.rw > 0).length === 0 && (
-                    <tr><td colSpan={3} style={{...S.td, textAlign:"center", color:"#64748b"}}>Belum ada reward cair.</td></tr>
+                    <tr><td colSpan={3} style={{ ...S.td, textAlign: "center", color: "#64748b" }}>Belum ada reward cair.</td></tr>
                   )}
                 </tbody>
               </table>
@@ -981,38 +980,38 @@ export default function App() {
         {tab === "import" && session.role === "admin" && (
           <div>
             <div style={S.card}>
-              <div style={{fontWeight:800, fontSize:15, marginBottom:8, color:"#d4af37"}}>📥 Import Data Realisasi (CSV)</div>
-              <div style={{fontSize:12, color:"#94a3b8", marginBottom:10, lineHeight:1.6}}>
-                Format per baris: <code style={{color:"#fbbf24"}}>NAMA EPI STORE,BULAN,GOLDGRAM,MEEZAN GOLD,SILVERGRAM</code><br/>
+              <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 8, color: "#d4af37" }}>📥 Import Data Realisasi (CSV)</div>
+              <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 10, lineHeight: 1.6 }}>
+                Format per baris: <code style={{ color: "#fbbf24" }}>NAMA EPI STORE,BULAN,GOLDGRAM,MEEZAN GOLD,SILVERGRAM</code><br />
                 Bulan gunakan singkatan JAN-DEC. Angka tanpa titik/koma (contoh: 1422430000). Baris pertama boleh berupa header (akan diabaikan).
               </div>
               <textarea
-                style={{...S.input, minHeight:140, fontFamily:"monospace", fontSize:12, resize:"vertical"}}
+                style={{ ...S.input, minHeight: 140, fontFamily: "monospace", fontSize: 12, resize: "vertical" }}
                 placeholder={"EPIS TANGERANG,JAN,1422430000,972646000,0\nEPIS MALANG,JAN,0,0,866478400\nEPIS TANGERANG,FEB,2045728000,349749000,0"}
                 value={csvText}
                 onChange={e => setCsvText(e.target.value)}
               />
-              <div style={{marginTop:10, display:"flex", gap:8}}>
-                <button style={{...S.btn, flex:1}} onClick={parseCSV}>🔍 Preview Import</button>
+              <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
+                <button style={{ ...S.btn, flex: 1 }} onClick={parseCSV}>🔍 Preview Import</button>
               </div>
 
               {importPreview && (
-                <div style={{marginTop:12}}>
+                <div style={{ marginTop: 12 }}>
                   {importPreview.errors.length > 0 && (
-                    <div style={{padding:10, borderRadius:8, background:"#1c1410", border:"1px solid #92400e", marginBottom:8}}>
-                      <div style={{fontSize:12, fontWeight:700, color:"#fbbf24", marginBottom:4}}>⚠️ {importPreview.errors.length} baris bermasalah (akan diabaikan):</div>
-                      {importPreview.errors.map((e, i) => <div key={i} style={{fontSize:11, color:"#fca5a5"}}>{e}</div>)}
+                    <div style={{ padding: 10, borderRadius: 8, background: "#1c1410", border: "1px solid #92400e", marginBottom: 8 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#fbbf24", marginBottom: 4 }}>⚠️ {importPreview.errors.length} baris bermasalah (akan diabaikan):</div>
+                      {importPreview.errors.map((e, i) => <div key={i} style={{ fontSize: 11, color: "#fca5a5" }}>{e}</div>)}
                     </div>
                   )}
                   {importPreview.rows.length > 0 && (
                     <>
-                      <div style={{...S.card, overflowX:"auto", padding:8, marginBottom:8}}>
-                        <table style={{borderCollapse:"collapse", width:"100%"}}>
-                          <thead><tr>{["EPI Store","Bulan","Goldgram","Meezan Gold","Silvergram"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
+                      <div style={{ ...S.card, overflowX: "auto", padding: 8, marginBottom: 8 }}>
+                        <table style={{ borderCollapse: "collapse", width: "100%" }}>
+                          <thead><tr>{["EPI Store", "Bulan", "Goldgram", "Meezan Gold", "Silvergram"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
                           <tbody>
                             {importPreview.rows.map((r, i) => (
                               <tr key={i}>
-                                <td style={{...S.td, fontWeight:700}}>{r.storeName}</td>
+                                <td style={{ ...S.td, fontWeight: 700 }}>{r.storeName}</td>
                                 <td style={S.td}>{r.monthName}</td>
                                 <td style={S.td}>{fmt(r.g)}</td>
                                 <td style={S.td}>{fmt(r.m)}</td>
@@ -1027,27 +1026,27 @@ export default function App() {
                   )}
                 </div>
               )}
-              {importMsg && <div style={{marginTop:8, fontSize:13, fontWeight:700, color: importMsg.ok ? "#4ade80" : "#f87171", textAlign:"center"}}>{importMsg.t}</div>}
+              {importMsg && <div style={{ marginTop: 8, fontSize: 13, fontWeight: 700, color: importMsg.ok ? "#4ade80" : "#f87171", textAlign: "center" }}>{importMsg.t}</div>}
             </div>
 
             <div style={S.card}>
-              <div style={{fontWeight:800, fontSize:14, color:"#d4af37", marginBottom:8}}>📋 Data Tersimpan Saat Ini</div>
-              <div style={{fontSize:12, color:"#94a3b8", marginBottom:8}}>{Object.keys(data).length} entri data realisasi tersimpan.</div>
-              <div style={{...S.card, maxHeight:240, overflowY:"auto", padding:8}}>
-                <table style={{borderCollapse:"collapse", width:"100%"}}>
-                  <thead><tr>{["EPI Store","Bulan","Gold","Meezan","Silver","BE"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
+              <div style={{ fontWeight: 800, fontSize: 14, color: "#d4af37", marginBottom: 8 }}>📋 Data Tersimpan Saat Ini</div>
+              <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 8 }}>{Object.keys(data).length} entri data realisasi tersimpan.</div>
+              <div style={{ ...S.card, maxHeight: 240, overflowY: "auto", padding: 8 }}>
+                <table style={{ borderCollapse: "collapse", width: "100%" }}>
+                  <thead><tr>{["EPI Store", "Bulan", "Gold", "Meezan", "Silver", "BE"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
                   <tbody>
-                    {Object.entries(data).sort((a,b)=>a[0].localeCompare(b[0],undefined,{numeric:true})).map(([k, d]) => {
+                    {Object.entries(data).sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true })).map(([k, d]) => {
                       const [si, mi] = k.split("-").map(Number);
                       if (!STORES[si]) return null;
                       return (
                         <tr key={k}>
-                          <td style={{...S.td, fontWeight:700}}>{STORES[si].n}</td>
+                          <td style={{ ...S.td, fontWeight: 700 }}>{STORES[si].n}</td>
                           <td style={S.td}>{MONTHS[mi]}</td>
                           <td style={S.td}>{fmt(d.g)}</td>
                           <td style={S.td}>{fmt(d.m)}</td>
                           <td style={S.td}>{fmt(d.s)}</td>
-                          <td style={{...S.td, fontSize:11, color:"#94a3b8"}}>{d.be}</td>
+                          <td style={{ ...S.td, fontSize: 11, color: "#94a3b8" }}>{d.be}</td>
                         </tr>
                       );
                     })}
@@ -1062,15 +1061,15 @@ export default function App() {
         {tab === "access" && session.role === "admin" && (
           <div>
             <div style={S.card}>
-              <div style={{fontWeight:800, fontSize:15, marginBottom:8, color:"#d4af37"}}>Buat Akun Pengguna</div>
-              <div style={{display:"grid", gridTemplateColumns:"1fr 1fr 140px 1fr auto", gap:8, alignItems:"end"}}>
+              <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 8, color: "#d4af37" }}>Buat Akun Pengguna</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 140px 1fr auto", gap: 8, alignItems: "end" }}>
                 <div>
                   <label style={S.label}>Nama Pengguna</label>
                   <input style={S.input} placeholder="cth: Andi - Goldgram" value={newPinName} onChange={e => setNewPinName(e.target.value)} />
                 </div>
                 <div>
                   <label style={S.label}>PIN Baru (4-6 digit)</label>
-                  <input style={S.input} inputMode="numeric" maxLength={6} placeholder="cth: 1111" value={newPin} onChange={e => setNewPin(e.target.value.replace(/[^\d]/g,""))} />
+                  <input style={S.input} inputMode="numeric" maxLength={6} placeholder="cth: 1111" value={newPin} onChange={e => setNewPin(e.target.value.replace(/[^\d]/g, ""))} />
                 </div>
                 <div>
                   <label style={S.label}>Peran</label>
@@ -1086,25 +1085,25 @@ export default function App() {
                     {BRANDS.map((brand) => <option key={brand.code} value={brand.code}>{brand.name}</option>)}
                   </select>
                 </div>
-                <button style={{...S.btn, width:"auto", padding:"10px 16px"}} onClick={addUser}>Tambah</button>
+                <button style={{ ...S.btn, width: "auto", padding: "10px 16px" }} onClick={addUser}>Tambah</button>
               </div>
-              {importMsg && <div style={{marginTop:8, fontSize:13, fontWeight:700, color: importMsg.ok ? "#4ade80" : "#f87171"}}>{importMsg.t}</div>}
+              {importMsg && <div style={{ marginTop: 8, fontSize: 13, fontWeight: 700, color: importMsg.ok ? "#4ade80" : "#f87171" }}>{importMsg.t}</div>}
             </div>
 
-            <div style={{...S.card, overflowX:"auto"}}>
-              <div style={{fontWeight:800, fontSize:15, marginBottom:8, color:"#d4af37"}}>Pengguna dan Otorisasi</div>
-              <div style={{fontSize:12, color:"#94a3b8", marginBottom:10}}>PIN disimpan sebagai hash dan tidak dapat ditampilkan kembali. Isi kolom PIN baru hanya saat ingin menggantinya.</div>
-              <div style={{marginTop:14}}>
-                <table style={{borderCollapse:"collapse", width:"100%", minWidth:850}}>
-                  <thead><tr>{["Nama","Peran","Brand","Status","PIN Baru","Aksi"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
+            <div style={{ ...S.card, overflowX: "auto" }}>
+              <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 8, color: "#d4af37" }}>Pengguna dan Otorisasi</div>
+              <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 10 }}>PIN disimpan sebagai hash dan tidak dapat ditampilkan kembali. Isi kolom PIN baru hanya saat ingin menggantinya.</div>
+              <div style={{ marginTop: 14 }}>
+                <table style={{ borderCollapse: "collapse", width: "100%", minWidth: 850 }}>
+                  <thead><tr>{["Nama", "Peran", "Brand", "Status", "PIN Baru", "Aksi"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
                   <tbody>
                     {users.map((user) => (
                       <tr key={user.id}>
                         <td style={S.td}>
-                          <input style={{...S.input, minWidth:160}} value={user.name} onChange={e => updateUserField(user.id, "name", e.target.value)} />
+                          <input style={{ ...S.input, minWidth: 160 }} value={user.name} onChange={e => updateUserField(user.id, "name", e.target.value)} />
                         </td>
                         <td style={S.td}>
-                          <select style={{...S.select, minWidth:130}} value={user.role} disabled={user.id === session.id} onChange={e => updateUserField(user.id, "role", e.target.value)}>
+                          <select style={{ ...S.select, minWidth: 130 }} value={user.role} disabled={user.id === session.id} onChange={e => updateUserField(user.id, "role", e.target.value)}>
                             <option value="be">Brand Executive</option>
                             <option value="viewer">Manajemen</option>
                             <option value="admin">Administrator</option>
@@ -1112,7 +1111,7 @@ export default function App() {
                         </td>
                         <td style={S.td}>
                           <select
-                            style={{...S.select, minWidth:220}}
+                            style={{ ...S.select, minWidth: 220 }}
                             value={user.brandCodes[0] ?? ""}
                             disabled={user.role !== "be"}
                             onChange={e => updateUserField(user.id, "brandCodes", e.target.value === "" ? [] : [e.target.value])}
@@ -1122,32 +1121,32 @@ export default function App() {
                           </select>
                         </td>
                         <td style={S.td}>
-                          <select style={{...S.select, minWidth:110}} value={user.isActive ? "1" : "0"} disabled={user.id === session.id} onChange={e => updateUserField(user.id, "isActive", e.target.value === "1")}>
+                          <select style={{ ...S.select, minWidth: 110 }} value={user.isActive ? "1" : "0"} disabled={user.id === session.id} onChange={e => updateUserField(user.id, "isActive", e.target.value === "1")}>
                             <option value="1">Aktif</option>
                             <option value="0">Nonaktif</option>
                           </select>
                         </td>
                         <td style={S.td}>
                           <input
-                            style={{...S.input, width:120}}
+                            style={{ ...S.input, width: 120 }}
                             inputMode="numeric"
                             maxLength={6}
                             placeholder="Opsional"
                             value={userPinChanges[user.id] || ""}
-                            onChange={e => setUserPinChanges(current => ({...current, [user.id]: e.target.value.replace(/[^\d]/g,"")}))}
+                            onChange={e => setUserPinChanges(current => ({ ...current, [user.id]: e.target.value.replace(/[^\d]/g, "") }))}
                           />
                         </td>
                         <td style={S.td}><button style={S.btnGhost} onClick={() => saveUser(user)}>Simpan</button></td>
                       </tr>
                     ))}
-                    {users.length === 0 && <tr><td colSpan={6} style={{...S.td, textAlign:"center", color:"#64748b"}}>Belum ada pengguna.</td></tr>}
+                    {users.length === 0 && <tr><td colSpan={6} style={{ ...S.td, textAlign: "center", color: "#64748b" }}>Belum ada pengguna.</td></tr>}
                   </tbody>
                 </table>
               </div>
             </div>
 
             <div style={S.card}>
-              <div style={{fontSize:12, color:"#94a3b8", lineHeight:1.6}}>
+              <div style={{ fontSize: 12, color: "#94a3b8", lineHeight: 1.6 }}>
                 Setiap submission mengambil identitas dari sesi server dan otomatis tercatat atas nama pengguna tersebut.
                 Brand Executive dapat memilih seluruh EPI Store, tetapi hanya dapat mengubah omzet brand yang ditugaskan kepadanya.
               </div>
@@ -1159,23 +1158,23 @@ export default function App() {
         {tab === "setup" && (
           <div>
             <div style={S.card}>
-              <div style={{fontWeight:800, fontSize:14, color:"#d4af37", marginBottom:8}}>Skema Reward Challenge Bulanan 2026</div>
-              <div style={{overflowX:"auto"}}>
-                <table style={{borderCollapse:"collapse", width:"100%"}}>
-                  <thead><tr>{["Kategori","Tier","Min. Omzet Bulanan","Rate","Basis"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
+              <div style={{ fontWeight: 800, fontSize: 14, color: "#d4af37", marginBottom: 8 }}>Skema Reward Challenge Bulanan 2026</div>
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ borderCollapse: "collapse", width: "100%" }}>
+                  <thead><tr>{["Kategori", "Tier", "Min. Omzet Bulanan", "Rate", "Basis"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
                   <tbody>
-                    {[["EMAS","Tier 1",fmt(750e6),"0,10%","GOLDGRAM + MEEZAN GOLD"],
-                      ["EMAS","Tier 2",fmt(1e9),"0,12%","GOLDGRAM + MEEZAN GOLD"],
-                      ["EMAS","Tier 3",fmt(1.5e9),"0,15%","GOLDGRAM + MEEZAN GOLD"],
-                      ["PERAK","Tier 1",fmt(150e6),"0,10%","SILVERGRAM"],
-                      ["PERAK","Tier 2",fmt(300e6),"0,15%","SILVERGRAM"],
-                      ["PERAK","Tier 3",fmt(1e9),"0,20%","SILVERGRAM"]].map((row, i) => (
-                      <tr key={i}>{row.map((c, j) => <td key={j} style={{...S.td, color: row[0]==="EMAS" ? (j===0?"#fbbf24":"#e2e8f0") : (j===0?"#cbd5e1":"#e2e8f0"), fontWeight: j===0?700:400}}>{c}</td>)}</tr>
+                    {[["EMAS", "Tier 1", fmt(750e6), "0,10%", "GOLDGRAM + MEEZAN GOLD"],
+                    ["EMAS", "Tier 2", fmt(1e9), "0,12%", "GOLDGRAM + MEEZAN GOLD"],
+                    ["EMAS", "Tier 3", fmt(1.5e9), "0,15%", "GOLDGRAM + MEEZAN GOLD"],
+                    ["PERAK", "Tier 1", fmt(150e6), "0,10%", "SILVERGRAM"],
+                    ["PERAK", "Tier 2", fmt(300e6), "0,15%", "SILVERGRAM"],
+                    ["PERAK", "Tier 3", fmt(1e9), "0,20%", "SILVERGRAM"]].map((row, i) => (
+                      <tr key={i}>{row.map((c, j) => <td key={j} style={{ ...S.td, color: row[0] === "EMAS" ? (j === 0 ? "#fbbf24" : "#e2e8f0") : (j === 0 ? "#cbd5e1" : "#e2e8f0"), fontWeight: j === 0 ? 700 : 400 }}>{c}</td>)}</tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-              <ul style={{fontSize:12, color:"#94a3b8", paddingLeft:18, marginTop:10, lineHeight:1.7}}>
+              <ul style={{ fontSize: 12, color: "#94a3b8", paddingLeft: 18, marginTop: 10, lineHeight: 1.7 }}>
                 <li>Reward dihitung per kategori, per EPI Store, dari omzet aktual bulan terpilih.</li>
                 <li>Di bawah tier minimum → reward kategori Rp 0. Cair parsial jika hanya satu kategori lolos.</li>
                 <li>Berlaku sepanjang tahun 2026 (JAN–DEC).</li>
@@ -1183,32 +1182,32 @@ export default function App() {
             </div>
 
             <div style={S.card}>
-              <div style={{fontWeight:800, fontSize:14, color:"#d4af37", marginBottom:8}}>Bobot Target Bulanan</div>
-              <div style={{display:"flex", flexWrap:"wrap", gap:8}}>
+              <div style={{ fontWeight: 800, fontSize: 14, color: "#d4af37", marginBottom: 8 }}>Bobot Target Bulanan</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                 {MONTHS.map((m, i) => (
-                  <div key={i} style={{padding:"8px 10px", borderRadius:8, background:"#0f172a", border:"1px solid #334155", fontSize:12, textAlign:"center", minWidth:62}}>
-                    <div style={{fontWeight:800}}>{m}</div>
-                    <div style={{color:"#d4af37", fontWeight:700}}>{pctWeight(WEIGHTS[i])}</div>
-                    <div style={{fontSize:10, color: SEASON[i]==="High" ? "#4ade80" : SEASON[i]==="Low" ? "#60a5fa" : "#94a3b8"}}>{SEASON[i]}</div>
+                  <div key={i} style={{ padding: "8px 10px", borderRadius: 8, background: "#0f172a", border: "1px solid #334155", fontSize: 12, textAlign: "center", minWidth: 62 }}>
+                    <div style={{ fontWeight: 800 }}>{m}</div>
+                    <div style={{ color: "#d4af37", fontWeight: 700 }}>{pctWeight(WEIGHTS[i])}</div>
+                    <div style={{ fontSize: 10, color: SEASON[i] === "High" ? "#4ade80" : SEASON[i] === "Low" ? "#60a5fa" : "#94a3b8" }}>{SEASON[i]}</div>
                   </div>
                 ))}
               </div>
             </div>
 
             <div style={S.card}>
-              <div style={{fontWeight:800, fontSize:14, color:"#d4af37", marginBottom:8}}>Master Target 28 EPI Store (Total Rp 634,4 M)</div>
-              <div style={{overflowX:"auto"}}>
-                <table style={{borderCollapse:"collapse", width:"100%"}}>
-                  <thead><tr>{["EPI Store","Seg","Gold","Meezan","Silver","Total"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
+              <div style={{ fontWeight: 800, fontSize: 14, color: "#d4af37", marginBottom: 8 }}>Master Target 28 EPI Store (Total Rp 634,4 M)</div>
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ borderCollapse: "collapse", width: "100%" }}>
+                  <thead><tr>{["EPI Store", "Seg", "Gold", "Meezan", "Silver", "Total"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
                   <tbody>
                     {STORES.map((s, i) => (
                       <tr key={i}>
-                        <td style={{...S.td, fontWeight:700}}>{s.n}</td>
-                        <td style={{...S.td, fontSize:10, color:"#94a3b8"}}>{s.seg}</td>
+                        <td style={{ ...S.td, fontWeight: 700 }}>{s.n}</td>
+                        <td style={{ ...S.td, fontSize: 10, color: "#94a3b8" }}>{s.seg}</td>
                         <td style={S.td}>{fmtS(s.g)}</td>
                         <td style={S.td}>{fmtS(s.m)}</td>
                         <td style={S.td}>{fmtS(s.s)}</td>
-                        <td style={{...S.td, fontWeight:700}}>{fmtS(s.g + s.m + s.s)}</td>
+                        <td style={{ ...S.td, fontWeight: 700 }}>{fmtS(s.g + s.m + s.s)}</td>
                       </tr>
                     ))}
                   </tbody>

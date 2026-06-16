@@ -563,13 +563,13 @@ export default function App() {
 
   const S = {
     wrap: { fontFamily: "'Segoe UI', system-ui, sans-serif", background: "#0f172a", minHeight: "100vh", color: "#e2e8f0", paddingBottom: 40 },
-    header: { background: "linear-gradient(135deg,#1e3a8a,#0f172a)", padding: "20px 16px 14px", borderBottom: "3px solid #d4af37", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" },
+    header: { maxWidth: 1100, width: "calc(100% - 24px)", boxSizing: "border-box", margin: "0 auto", background: "linear-gradient(135deg,#1e3a8a,#0f172a)", padding: "20px 16px 14px", borderBottom: "3px solid #d4af37", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" },
     headerBrand: { display: "flex", alignItems: "center", gap: 12, flex: "1 1 280px", minWidth: 0, flexWrap: "wrap" },
     logo: { width: 140, maxWidth: "42vw", height: "auto", display: "block", objectFit: "contain", flexShrink: 0 },
     loginLogo: { width: 140, maxWidth: "56vw", height: "auto", display: "block", objectFit: "contain", margin: "0 auto 12px" },
     h1: { margin: 0, fontSize: 19, fontWeight: 800, color: "#fff", letterSpacing: 0.3 },
     sub: { margin: "4px 0 0", fontSize: 12, color: "#94a3b8" },
-    tabs: { display: "flex", justifyContent: "center", gap: 6, padding: "10px 12px", overflowX: "auto", scrollPadding: 12, background: "#1e293b", borderBottom: "1px solid #334155" },
+    tabs: { maxWidth: 1100, width: "calc(100% - 24px)", boxSizing: "border-box", margin: "0 auto", display: "flex", justifyContent: "center", gap: 6, padding: "10px 12px", overflowX: "auto", scrollPadding: 12, background: "#1e293b", borderBottom: "1px solid #334155" },
     tab: (a) => ({ padding: "8px 14px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", background: a ? "#d4af37" : "#334155", color: a ? "#0f172a" : "#cbd5e1" }),
     body: { padding: "14px 12px", maxWidth: 1100, margin: "0 auto" },
     card: { background: "#1e293b", borderRadius: 12, padding: 14, marginBottom: 12, border: "1px solid #334155" },

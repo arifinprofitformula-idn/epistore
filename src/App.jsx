@@ -27,13 +27,13 @@ const STORES = [
   { n: "EPIS CILEGON RAYA", g: 8e9, m: 4e9, s: 0.5e9, seg: "START UP" },
   { n: "EPIS INDRAMAYU", g: 8e9, m: 4e9, s: 0.2e9, seg: "START UP" },
   { n: "EPIS BPRS ATTAQWA", g: 39.2e9, m: 19.6e9, s: 0.4e9, seg: "START UP" },
-  { n: "NEW EPIS 2", g: 9.8e9, m: 4.9e9, s: 0.1e9, seg: "START UP" },
-  { n: "NEW EPIS 3", g: 9.8e9, m: 4.9e9, s: 0.1e9, seg: "START UP" },
-  { n: "NEW EPIS 4", g: 9.8e9, m: 4.9e9, s: 0.1e9, seg: "START UP" },
+  { n: "NEW EPIS 2", g: 0, m: 0, s: 0, seg: "START UP" },
+  { n: "NEW EPIS 3", g: 0, m: 0, s: 0, seg: "START UP" },
+  { n: "NEW EPIS 4", g: 0, m: 0, s: 0, seg: "START UP" },
 ];
 
 const MONTHS = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
-const WEIGHTS = [0.04,0.07,0.09,0.08,0.09,0.09,0.09,0.11,0.11,0.08,0.08,0.07];
+const WEIGHTS = [0.04,0.07,0.09,0.075,0.0875,0.0875,0.09,0.105,0.105,0.075,0.0875,0.0875];
 const SEASON = ["Low","Low","Normal","Normal","Normal","Normal","Normal","High","High","Normal","Normal","Low"];
 
 const EMAS_TIERS = [
@@ -193,6 +193,7 @@ const fmtS = (v) => {
   return fmt(v);
 };
 const pct = (v) => v == null || isNaN(v) ? "-" : v.toLocaleString("id-ID",{maximumFractionDigits:1}) + "%";
+const pctWeight = (v) => (v * 100).toLocaleString("id-ID", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + "%";
 
 const tierCalc = (omzet, tiers) => {
   for (const t of tiers) if (omzet >= t.min) return { ...t, reward: omzet * t.rate };
@@ -593,7 +594,9 @@ export default function App() {
           </div>
           <input
             style={{...S.input, textAlign:"center", fontSize:22, letterSpacing:6, fontWeight:800}}
+            type="password"
             inputMode="numeric"
+            autoComplete="current-password"
             maxLength={6}
             placeholder="••••"
             value={pinInput}
@@ -666,7 +669,7 @@ export default function App() {
                 <div>
                   <label style={S.label}>Bulan</label>
                   <select style={S.select} value={fMonth} onChange={e => setFMonth(+e.target.value)}>
-                    {MONTHS.map((m, i) => <option key={i} value={i}>{m} — bobot {(WEIGHTS[i]*100).toFixed(0)}% ({SEASON[i]} Season)</option>)}
+                    {MONTHS.map((m, i) => <option key={i} value={i}>{m} — bobot {pctWeight(WEIGHTS[i])} ({SEASON[i]} Season)</option>)}
                   </select>
                 </div>
               </div>
@@ -1177,7 +1180,7 @@ export default function App() {
                 {MONTHS.map((m, i) => (
                   <div key={i} style={{padding:"8px 10px", borderRadius:8, background:"#0f172a", border:"1px solid #334155", fontSize:12, textAlign:"center", minWidth:62}}>
                     <div style={{fontWeight:800}}>{m}</div>
-                    <div style={{color:"#d4af37", fontWeight:700}}>{(WEIGHTS[i]*100).toFixed(0)}%</div>
+                    <div style={{color:"#d4af37", fontWeight:700}}>{pctWeight(WEIGHTS[i])}</div>
                     <div style={{fontSize:10, color: SEASON[i]==="High" ? "#4ade80" : SEASON[i]==="Low" ? "#60a5fa" : "#94a3b8"}}>{SEASON[i]}</div>
                   </div>
                 ))}

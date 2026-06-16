@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import logoSrc from "./assets/logo-epi-original.png";
 
 // ============ DATA MASTER ============
 const STORES = [
@@ -52,6 +53,7 @@ const BRANDS = [
   { code: "meezan_gold", name: "MEEZAN GOLD", field: "m", targetField: "tm", realField: "rm", color: "#86efac", gradient: "linear-gradient(135deg,#0f3d2e,#4a7a5e)" },
   { code: "silvergram", name: "SILVERGRAM", field: "s", targetField: "ts", realField: "rs", color: "#cbd5e1", gradient: "linear-gradient(135deg,#64748b,#e2e8f0)" },
 ];
+const LOGO_SRC = logoSrc;
 
 // Realisasi Jan-Mei 2026, full 25 EPI Store (sumber: Realisasi_Input_Jan_Mei_Import_EPI_RECHECK.csv)
 // key: "storeIdx-monthIdx" -> { g, m, s, be }
@@ -561,7 +563,10 @@ export default function App() {
 
   const S = {
     wrap: { fontFamily: "'Segoe UI', system-ui, sans-serif", background: "#0f172a", minHeight: "100vh", color: "#e2e8f0", paddingBottom: 40 },
-    header: { background: "linear-gradient(135deg,#1e3a8a,#0f172a)", padding: "20px 16px 14px", borderBottom: "3px solid #d4af37", display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:10 },
+    header: { background: "linear-gradient(135deg,#1e3a8a,#0f172a)", padding: "20px 16px 14px", borderBottom: "3px solid #d4af37", display:"flex", justifyContent:"space-between", alignItems:"center", gap:12, flexWrap:"wrap" },
+    headerBrand: { display:"flex", alignItems:"center", gap:12, flex:"1 1 280px", minWidth:0, flexWrap:"wrap" },
+    logo: { width:140, maxWidth:"42vw", height:"auto", display:"block", objectFit:"contain", flexShrink:0 },
+    loginLogo: { width:140, maxWidth:"56vw", height:"auto", display:"block", objectFit:"contain", margin:"0 auto 12px" },
     h1: { margin: 0, fontSize: 19, fontWeight: 800, color: "#fff", letterSpacing: 0.3 },
     sub: { margin: "4px 0 0", fontSize: 12, color: "#94a3b8" },
     tabs: { display: "flex", gap: 6, padding: "10px 12px", overflowX: "auto", background: "#1e293b", borderBottom: "1px solid #334155" },
@@ -588,7 +593,7 @@ export default function App() {
       <div style={{...S.wrap, display:"flex", alignItems:"center", justifyContent:"center", padding:20}}>
         <div style={{...S.card, maxWidth:360, width:"100%"}}>
           <div style={{textAlign:"center", marginBottom:16}}>
-            <div style={{fontSize:28, marginBottom:6}}>📊</div>
+            <img src={LOGO_SRC} alt="EPI" style={S.loginLogo} />
             <div style={{fontWeight:800, fontSize:17, color:"#fff"}}>Dashboard EPI Store 2026</div>
             <div style={{fontSize:12, color:"#94a3b8", marginTop:4}}>Masukkan PIN Anda untuk masuk</div>
           </div>
@@ -625,16 +630,19 @@ export default function App() {
   return (
     <div style={S.wrap}>
       <div style={S.header}>
-        <div>
-          <h1 style={{...S.h1, background:"linear-gradient(135deg,#cbd5e1,#94a3b8,#d4af37,#f5d78e)", WebkitBackgroundClip:"text", backgroundClip:"text", color:"transparent", fontSize:22, letterSpacing:1}}>EPI - Indonesian Bullion Ecosystem</h1>
-          <p style={S.sub}>📊 Dashboard Performance & Reward 2026 — Tiered Reward Challenge | Total Target: Rp 634,4 M</p>
-          <div style={{display:"flex", gap:8, marginTop:8, flexWrap:"wrap"}}>
-            <span style={{fontSize:10, fontWeight:800, padding:"3px 10px", borderRadius:99, background:"linear-gradient(135deg,#b8860b,#f5d78e)", color:"#1a1200"}}>GOLDGRAM</span>
-            <span style={{fontSize:10, fontWeight:800, padding:"3px 10px", borderRadius:99, background:"linear-gradient(135deg,#0f3d2e,#4a7a5e)", color:"#f5d78e"}}>MEEZAN GOLD</span>
-            <span style={{fontSize:10, fontWeight:800, padding:"3px 10px", borderRadius:99, background:"linear-gradient(135deg,#94a3b8,#e2e8f0)", color:"#0f172a"}}>SILVERGRAM</span>
+        <div style={S.headerBrand}>
+          <img src={LOGO_SRC} alt="EPI" style={S.logo} />
+          <div style={{minWidth:0}}>
+            <h1 style={{...S.h1, background:"linear-gradient(135deg,#cbd5e1,#94a3b8,#d4af37,#f5d78e)", WebkitBackgroundClip:"text", backgroundClip:"text", color:"transparent", fontSize:22, letterSpacing:1}}>EPI - Indonesian Bullion Ecosystem</h1>
+            <p style={S.sub}>Dashboard Performance & Reward 2026 — Tiered Reward Challenge | Total Target: Rp 634,4 M</p>
+            <div style={{display:"flex", gap:8, marginTop:8, flexWrap:"wrap"}}>
+              <span style={{fontSize:10, fontWeight:800, padding:"3px 10px", borderRadius:99, background:"linear-gradient(135deg,#b8860b,#f5d78e)", color:"#1a1200"}}>GOLDGRAM</span>
+              <span style={{fontSize:10, fontWeight:800, padding:"3px 10px", borderRadius:99, background:"linear-gradient(135deg,#0f3d2e,#4a7a5e)", color:"#f5d78e"}}>MEEZAN GOLD</span>
+              <span style={{fontSize:10, fontWeight:800, padding:"3px 10px", borderRadius:99, background:"linear-gradient(135deg,#94a3b8,#e2e8f0)", color:"#0f172a"}}>SILVERGRAM</span>
+            </div>
           </div>
         </div>
-        <div style={{textAlign:"right", flexShrink:0}}>
+        <div style={{textAlign:"right", flexShrink:0, marginLeft:"auto"}}>
           <div style={{fontSize:12, color:"#d4af37", fontWeight:800}}>{session.name}</div>
           <div style={{fontSize:10, color:"#94a3b8", marginBottom:6}}>{session.role === "admin" ? "Administrator" : session.role === "viewer" ? "Manajemen — Hanya Lihat" : "Brand Executive"}</div>
           <button style={S.btnGhost} onClick={logout}>Keluar</button>

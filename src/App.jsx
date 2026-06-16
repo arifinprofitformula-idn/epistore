@@ -569,7 +569,7 @@ export default function App() {
     loginLogo: { width: 140, maxWidth: "56vw", height: "auto", display: "block", objectFit: "contain", margin: "0 auto 12px" },
     h1: { margin: 0, fontSize: 19, fontWeight: 800, color: "#fff", letterSpacing: 0.3 },
     sub: { margin: "4px 0 0", fontSize: 12, color: "#94a3b8" },
-    tabs: { display: "flex", gap: 6, padding: "10px 12px", overflowX: "auto", background: "#1e293b", borderBottom: "1px solid #334155" },
+    tabs: { display: "flex", justifyContent: "center", gap: 6, padding: "10px 12px", overflowX: "auto", scrollPadding: 12, background: "#1e293b", borderBottom: "1px solid #334155" },
     tab: (a) => ({ padding: "8px 14px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", background: a ? "#d4af37" : "#334155", color: a ? "#0f172a" : "#cbd5e1" }),
     body: { padding: "14px 12px", maxWidth: 1100, margin: "0 auto" },
     card: { background: "#1e293b", borderRadius: 12, padding: 14, marginBottom: 12, border: "1px solid #334155" },

@@ -652,10 +652,10 @@ export default function App() {
         </div>
       </div>
 
-      <div style={S.tabsShell}>
-        <div style={S.tabs}>
+      <div className="app-tabs-shell" style={S.tabsShell}>
+        <div className="app-tabs" style={S.tabs}>
           {visibleTabs.map(([k, l]) => (
-            <button key={k} style={S.tab(tab === k)} onClick={() => setTab(k)}>{l}</button>
+            <button className="app-tab" key={k} style={S.tab(tab === k)} onClick={() => setTab(k)}>{l}</button>
           ))}
         </div>
       </div>

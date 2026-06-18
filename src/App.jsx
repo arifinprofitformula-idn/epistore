@@ -34,18 +34,36 @@ const STORES = [
 ];
 
 const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+const REWARD_START_MONTH = 5; // Program reward berlaku mulai JUN 2026.
 const WEIGHTS = [0.04, 0.07, 0.09, 0.075, 0.0875, 0.0875, 0.09, 0.105, 0.105, 0.075, 0.0875, 0.0875];
 const SEASON = ["Low", "Low", "Normal", "Normal", "Normal", "Normal", "Normal", "High", "High", "Normal", "Normal", "Low"];
 
+const GPM_RATES = {
+  emas: 0.04,
+  perak: 0.2,
+};
+const PAYOUT_DISTRIBUTION = {
+  monthly: 0.7,
+  quarterly: 0.2,
+  annual: 0.1,
+};
+const PAYOUT_THRESHOLDS = {
+  quarterly: 80,
+  annual: 85,
+};
 const EMAS_TIERS = [
-  { min: 1.5e9, rate: 0.0015, name: "Emas Tier 3" },
-  { min: 1e9, rate: 0.0012, name: "Emas Tier 2" },
-  { min: 750e6, rate: 0.001, name: "Emas Tier 1" },
+  { min: 2.5e9, bm: 0.1, name: "Emas Tier 5" },
+  { min: 2e9, bm: 0.08, name: "Emas Tier 4" },
+  { min: 1.5e9, bm: 0.05, name: "Emas Tier 3" },
+  { min: 1e9, bm: 0.03, name: "Emas Tier 2" },
+  { min: 750e6, bm: 0.02, name: "Emas Tier 1" },
 ];
 const PERAK_TIERS = [
-  { min: 1e9, rate: 0.002, name: "Perak Tier 3" },
-  { min: 300e6, rate: 0.0015, name: "Perak Tier 2" },
-  { min: 150e6, rate: 0.001, name: "Perak Tier 1" },
+  { min: 1e9, bm: 0.1, name: "Perak Tier 5" },
+  { min: 750e6, bm: 0.08, name: "Perak Tier 4" },
+  { min: 500e6, bm: 0.05, name: "Perak Tier 3" },
+  { min: 300e6, bm: 0.03, name: "Perak Tier 2" },
+  { min: 200e6, bm: 0.02, name: "Perak Tier 1" },
 ];
 
 const BRANDS = [
@@ -196,11 +214,31 @@ const fmtS = (v) => {
 };
 const pct = (v) => v == null || isNaN(v) ? "-" : v.toLocaleString("id-ID", { maximumFractionDigits: 1 }) + "%";
 const pctWeight = (v) => (v * 100).toLocaleString("id-ID", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + "%";
+const pctRate = (v) => (v * 100).toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + "%";
 
-const tierCalc = (omzet, tiers) => {
-  for (const t of tiers) if (omzet >= t.min) return { ...t, reward: omzet * t.rate };
-  return { name: "Belum Lolos", rate: 0, reward: 0 };
+const tierCalc = (omzet, tiers, gpmRate) => {
+  const gpm = omzet * gpmRate;
+  for (const t of tiers) {
+    if (omzet >= t.min) {
+      const rate = gpmRate * t.bm;
+      return { ...t, gpmRate, gpm, rate, reward: gpm * t.bm };
+    }
+  }
+  return { name: "Belum Lolos", min: 0, bm: 0, gpmRate, gpm, rate: 0, reward: 0 };
 };
+const splitReward = (reward) => ({
+  rewardBudget: reward,
+  monthlyReward: reward * PAYOUT_DISTRIBUTION.monthly,
+  quarterlyPool: reward * PAYOUT_DISTRIBUTION.quarterly,
+  annualPool: reward * PAYOUT_DISTRIBUTION.annual,
+});
+const quarterStart = (monthIndex) => Math.floor(monthIndex / 3) * 3;
+const annualPayoutRate = (achievement) => {
+  if (achievement >= 100) return 1;
+  if (achievement >= PAYOUT_THRESHOLDS.annual) return achievement / 100;
+  return 0;
+};
+const isRewardMonth = (monthIndex) => monthIndex >= REWARD_START_MONTH;
 
 const statusOf = (ach, hasInput) => {
   if (!hasInput) return { t: "Belum Input", c: "#94a3b8", bg: "#f1f5f9" };
@@ -266,6 +304,7 @@ export default function App() {
 
   // CSV / bulk import
   const [csvText, setCsvText] = useState("");
+  const [csvFileName, setCsvFileName] = useState("");
   const [importPreview, setImportPreview] = useState(null);
   const [importMsg, setImportMsg] = useState(null);
 
@@ -369,11 +408,13 @@ export default function App() {
     const hasInput = !!d;
     const rg = d ? d.g : 0, rm = d ? d.m : 0, rs = d ? d.s : 0;
     const emasOmzet = rg + rm, perakOmzet = rs;
-    const emasTier = tierCalc(emasOmzet, EMAS_TIERS);
-    const perakTier = tierCalc(perakOmzet, PERAK_TIERS);
+    const rewardActive = isRewardMonth(mi);
+    const emasTier = rewardActive ? tierCalc(emasOmzet, EMAS_TIERS, GPM_RATES.emas) : { name: "Belum Berlaku", min: 0, bm: 0, gpmRate: GPM_RATES.emas, gpm: 0, rate: 0, reward: 0 };
+    const perakTier = rewardActive ? tierCalc(perakOmzet, PERAK_TIERS, GPM_RATES.perak) : { name: "Belum Berlaku", min: 0, bm: 0, gpmRate: GPM_RATES.perak, gpm: 0, rate: 0, reward: 0 };
+    const totalReward = emasTier.reward + perakTier.reward;
     const target = tg + tm + ts, real = rg + rm + rs;
     const ach = target > 0 ? (real / target) * 100 : 0;
-    return { st, tg, tm, ts, rg, rm, rs, target, real, ach, hasInput, emasOmzet, perakOmzet, emasTier, perakTier, totalReward: emasTier.reward + perakTier.reward, be: d?.be, note: d?.note };
+    return { st, tg, tm, ts, rg, rm, rs, target, real, ach, hasInput, emasOmzet, perakOmzet, emasTier, perakTier, totalReward, ...splitReward(totalReward), be: d?.be, note: d?.note };
   };
 
   // ===== INPUT TAB PREVIEW =====
@@ -381,13 +422,34 @@ export default function App() {
     const st = STORES[fStore], w = WEIGHTS[fMonth];
     const tg = st.g * w, tm = st.m * w, ts = st.s * w;
     const g = parseNum(fG), m = parseNum(fM), s = parseNum(fS);
-    const emasTier = tierCalc(g + m, EMAS_TIERS);
-    const perakTier = tierCalc(s, PERAK_TIERS);
+    const rewardActive = isRewardMonth(fMonth);
+    const emasTier = rewardActive ? tierCalc(g + m, EMAS_TIERS, GPM_RATES.emas) : { name: "Belum Berlaku", min: 0, bm: 0, gpmRate: GPM_RATES.emas, gpm: 0, rate: 0, reward: 0 };
+    const perakTier = rewardActive ? tierCalc(s, PERAK_TIERS, GPM_RATES.perak) : { name: "Belum Berlaku", min: 0, bm: 0, gpmRate: GPM_RATES.perak, gpm: 0, rate: 0, reward: 0 };
+    const totalReward = emasTier.reward + perakTier.reward;
     const target = tg + tm + ts, real = g + m + s;
-    return { tg, tm, ts, g, m, s, emasTier, perakTier, target, real, ach: target > 0 ? real / target * 100 : 0 };
+    return { tg, tm, ts, g, m, s, emasTier, perakTier, totalReward, ...splitReward(totalReward), target, real, ach: target > 0 ? real / target * 100 : 0 };
   }, [fStore, fMonth, fG, fM, fS]);
 
   const warn = inputPreview.real > inputPreview.target * 5 && inputPreview.real > 0;
+
+  const getStoreQuarter = (si, monthIndex) => {
+    const start = quarterStart(monthIndex);
+    const rows = [0, 1, 2].map((offset) => getRow(si, start + offset));
+    const target = rows.reduce((a, r) => a + r.target, 0);
+    const real = rows.reduce((a, r) => a + r.real, 0);
+    const pool = rows.reduce((a, r) => a + r.quarterlyPool, 0);
+    const ach = target > 0 ? real / target * 100 : 0;
+    return { start, end: start + 2, target, real, ach, pool, payout: ach >= PAYOUT_THRESHOLDS.quarterly ? pool : 0 };
+  };
+
+  const getStoreAnnual = (si) => {
+    const rows = MONTHS.map((_, mi) => getRow(si, mi));
+    const target = rows.reduce((a, r) => a + r.target, 0);
+    const real = rows.reduce((a, r) => a + r.real, 0);
+    const pool = rows.reduce((a, r) => a + r.annualPool, 0);
+    const ach = target > 0 ? real / target * 100 : 0;
+    return { target, real, ach, pool, payout: pool * annualPayoutRate(ach) };
+  };
 
   // ===== DASHBOARD COMPUTATIONS =====
   const dashRows = useMemo(() => {
@@ -399,17 +461,20 @@ export default function App() {
     const totReal = rows.reduce((a, r) => a + r.real, 0);
     const totTarget = rows.reduce((a, r) => a + r.target, 0);
     const totReward = rows.reduce((a, r) => a + r.totalReward, 0);
+    const monthlyReward = rows.reduce((a, r) => a + r.monthlyReward, 0);
+    const quarterlyPool = rows.reduce((a, r) => a + r.quarterlyPool, 0);
+    const annualPool = rows.reduce((a, r) => a + r.annualPool, 0);
     const emasReward = rows.reduce((a, r) => a + r.emasTier.reward, 0);
     const perakReward = rows.reduce((a, r) => a + r.perakTier.reward, 0);
     const lolos = rows.filter(r => r.totalReward > 0).length;
-    let ytdT = 0, ytdR = 0, ytdRw = 0;
+    let ytdT = 0, ytdR = 0, ytdRw = 0, ytdMonthly = 0, ytdQuarterlyPool = 0, ytdAnnualPool = 0;
     for (let m = 0; m <= dMonth; m++) {
       STORES.forEach((_, i) => {
         const r = getRow(i, m);
-        ytdT += r.target; ytdR += r.real; ytdRw += r.totalReward;
+        ytdT += r.target; ytdR += r.real; ytdRw += r.totalReward; ytdMonthly += r.monthlyReward; ytdQuarterlyPool += r.quarterlyPool; ytdAnnualPool += r.annualPool;
       });
     }
-    return { totReal, totTarget, totReward, emasReward, perakReward, lolos, ytdT, ytdR, ytdRw, ytdAch: ytdT > 0 ? ytdR / ytdT * 100 : 0 };
+    return { totReal, totTarget, totReward, monthlyReward, quarterlyPool, annualPool, emasReward, perakReward, lolos, ytdT, ytdR, ytdRw, ytdMonthly, ytdQuarterlyPool, ytdAnnualPool, ytdAch: ytdT > 0 ? ytdR / ytdT * 100 : 0 };
   }, [data, dMonth]);
 
   const dashBrandKPI = useMemo(() => {
@@ -432,7 +497,11 @@ export default function App() {
     const t = episRows.reduce((a, r) => a + r.target, 0);
     const r = episRows.reduce((a, x) => a + x.real, 0);
     const rw = episRows.reduce((a, x) => a + x.totalReward, 0);
-    return { t, r, rw, ach: t > 0 ? r / t * 100 : 0 };
+    const monthly = episRows.reduce((a, x) => a + x.monthlyReward, 0);
+    const quarterly = episRows.reduce((a, x) => a + x.quarterlyPool, 0);
+    const annual = episRows.reduce((a, x) => a + x.annualPool, 0);
+    const ach = t > 0 ? r / t * 100 : 0;
+    return { t, r, rw, monthly, quarterly, annual, annualPayout: annual * annualPayoutRate(ach), ach };
   }, [episRows]);
 
   const episBrandKPI = useMemo(() => {
@@ -451,11 +520,39 @@ export default function App() {
 
   // ===== REWARD TAB =====
   const rewardRows = useMemo(() => STORES.map((_, i) => getRow(i, rMonth)).sort((a, b) => b.totalReward - a.totalReward), [data, rMonth]);
+  const rewardMonthKPI = useMemo(() => ({
+    budget: rewardRows.reduce((a, r) => a + r.totalReward, 0),
+    monthly: rewardRows.reduce((a, r) => a + r.monthlyReward, 0),
+    quarterly: rewardRows.reduce((a, r) => a + r.quarterlyPool, 0),
+    annual: rewardRows.reduce((a, r) => a + r.annualPool, 0),
+  }), [rewardRows]);
+  const rewardQuarter = useMemo(() => {
+    const rows = STORES.map((_, i) => ({ st: STORES[i], ...getStoreQuarter(i, rMonth) })).sort((a, b) => b.payout - a.payout || b.pool - a.pool);
+    return {
+      rows,
+      pool: rows.reduce((a, r) => a + r.pool, 0),
+      payout: rows.reduce((a, r) => a + r.payout, 0),
+      eligible: rows.filter(r => r.payout > 0).length,
+      label: `Q${Math.floor(rMonth / 3) + 1} (${MONTHS[quarterStart(rMonth)]}-${MONTHS[quarterStart(rMonth) + 2]})`,
+    };
+  }, [data, rMonth]);
+  const rewardAnnual = useMemo(() => {
+    const rows = STORES.map((_, i) => ({ st: STORES[i], ...getStoreAnnual(i) })).sort((a, b) => b.payout - a.payout || b.pool - a.pool);
+    return {
+      rows,
+      pool: rows.reduce((a, r) => a + r.pool, 0),
+      payout: rows.reduce((a, r) => a + r.payout, 0),
+      eligible: rows.filter(r => r.payout > 0).length,
+    };
+  }, [data]);
   const rewardYTD = useMemo(() => {
     return STORES.map((_, i) => {
-      let rw = 0;
-      for (let m = 0; m < 12; m++) rw += getRow(i, m).totalReward;
-      return { n: STORES[i].n, rw };
+      let rw = 0, monthly = 0, quarterly = 0, annual = 0;
+      for (let m = 0; m < 12; m++) {
+        const row = getRow(i, m);
+        rw += row.totalReward; monthly += row.monthlyReward; quarterly += row.quarterlyPool; annual += row.annualPool;
+      }
+      return { n: STORES[i].n, rw, monthly, quarterly, annual };
     }).sort((a, b) => b.rw - a.rw);
   }, [data]);
 
@@ -514,7 +611,34 @@ export default function App() {
 
   // ===== ADMIN: CSV Import =====
   const STORE_NAMES = STORES.map(s => s.n.toUpperCase());
+  const handleCSVFile = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith(".csv")) {
+      setImportMsg({ ok: false, t: "File harus berformat .csv." });
+      event.target.value = "";
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCsvText(String(reader.result || ""));
+      setCsvFileName(file.name);
+      setImportPreview(null);
+      setImportMsg({ ok: true, t: `File ${file.name} berhasil dimuat. Klik Preview Import untuk memeriksa data.` });
+      setTimeout(() => setImportMsg(null), 5000);
+    };
+    reader.onerror = () => {
+      setImportMsg({ ok: false, t: `File ${file.name} gagal dibaca.` });
+    };
+    reader.readAsText(file);
+  };
   const parseCSV = () => {
+    if (!csvText.trim()) {
+      setImportPreview(null);
+      setImportMsg({ ok: false, t: "Isi CSV masih kosong. Upload file CSV atau tempel data terlebih dahulu." });
+      setTimeout(() => setImportMsg(null), 4000);
+      return;
+    }
     const lines = csvText.trim().split("\n").filter(l => l.trim());
     const rows = [];
     const errors = [];
@@ -550,6 +674,7 @@ export default function App() {
       setImportMsg({ ok: true, t: `${payload.count} baris berhasil diimport.` });
       setImportPreview(null);
       setCsvText("");
+      setCsvFileName("");
     } catch (error) {
       setImportMsg({ ok: false, t: error.message });
     }
@@ -718,7 +843,9 @@ export default function App() {
                   <div>Ach Total: <b style={{ color: inputPreview.ach >= 100 ? "#4ade80" : inputPreview.ach >= 75 ? "#60a5fa" : "#f87171" }}>{pct(inputPreview.ach)}</b></div>
                   <div>Emas ({fmtS(inputPreview.g + inputPreview.m)}): <b style={{ color: "#fbbf24" }}>{inputPreview.emasTier.name}</b> → {fmt(inputPreview.emasTier.reward)}</div>
                   <div>Perak ({fmtS(inputPreview.s)}): <b style={{ color: "#cbd5e1" }}>{inputPreview.perakTier.name}</b> → {fmt(inputPreview.perakTier.reward)}</div>
-                  <div>Total Reward: <b style={{ color: "#d4af37" }}>{fmt(inputPreview.emasTier.reward + inputPreview.perakTier.reward)}</b></div>
+                  <div>Budget Reward: <b style={{ color: "#d4af37" }}>{fmt(inputPreview.totalReward)}</b></div>
+                  <div>Cair Bulanan 70%: <b style={{ color: "#4ade80" }}>{fmt(inputPreview.monthlyReward)}</b></div>
+                  <div>Pool Q/Annual: <b style={{ color: "#93c5fd" }}>{fmt(inputPreview.quarterlyPool)} / {fmt(inputPreview.annualPool)}</b></div>
                 </div>
                 {warn && <div style={{ marginTop: 8, fontSize: 12, color: "#fb923c" }}>⚠️ Realisasi &gt;5× target bulanan — pastikan satuan Rupiah penuh (bukan ribuan/jutaan).</div>}
               </div>
@@ -758,9 +885,10 @@ export default function App() {
 
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
               <div style={S.kpi}><div style={S.label}>Realisasi {MONTHS[dMonth]}</div><div style={S.kpiV}>{fmtS(dashKPI.totReal)}</div><div style={{ fontSize: 11, color: "#94a3b8" }}>Target: {fmtS(dashKPI.totTarget)}</div></div>
-              <div style={S.kpi}><div style={S.label}>Reward Cair {MONTHS[dMonth]}</div><div style={{ ...S.kpiV, color: "#d4af37" }}>{fmt(dashKPI.totReward)}</div><div style={{ fontSize: 11, color: "#94a3b8" }}>Emas {fmt(dashKPI.emasReward)} | Perak {fmt(dashKPI.perakReward)}</div></div>
+              <div style={S.kpi}><div style={S.label}>Reward Cair {MONTHS[dMonth]}</div><div style={{ ...S.kpiV, color: "#4ade80" }}>{fmt(dashKPI.monthlyReward)}</div><div style={{ fontSize: 11, color: "#94a3b8" }}>70% dari budget {fmtS(dashKPI.totReward)}</div></div>
+              <div style={S.kpi}><div style={S.label}>Pool Q / Akhir Tahun</div><div style={{ ...S.kpiV, color: "#93c5fd" }}>{fmtS(dashKPI.quarterlyPool)} / {fmtS(dashKPI.annualPool)}</div><div style={{ fontSize: 11, color: "#94a3b8" }}>20% quarterly | 10% annual</div></div>
               <div style={S.kpi}><div style={S.label}>EPIS Lolos Reward</div><div style={S.kpiV}>{dashKPI.lolos} <span style={{ fontSize: 12, color: "#94a3b8" }}>/ 28</span></div></div>
-              <div style={S.kpi}><div style={S.label}>YTD s.d. {MONTHS[dMonth]}</div><div style={S.kpiV}>{pct(dashKPI.ytdAch)}</div><div style={{ fontSize: 11, color: "#94a3b8" }}>{fmtS(dashKPI.ytdR)} / {fmtS(dashKPI.ytdT)} | Reward YTD: {fmtS(dashKPI.ytdRw)}</div></div>
+              <div style={S.kpi}><div style={S.label}>YTD s.d. {MONTHS[dMonth]}</div><div style={S.kpiV}>{pct(dashKPI.ytdAch)}</div><div style={{ fontSize: 11, color: "#94a3b8" }}>{fmtS(dashKPI.ytdR)} / {fmtS(dashKPI.ytdT)} | Cair: {fmtS(dashKPI.ytdMonthly)}</div></div>
             </div>
 
             <div style={{ ...S.card, padding: 12 }}>
@@ -803,7 +931,7 @@ export default function App() {
             <div style={{ ...S.card, overflowX: "auto", padding: 8 }}>
               <table style={{ borderCollapse: "collapse", width: "100%" }}>
                 <thead><tr>
-                  {["EPI Store", "Seg", "Target", "Realisasi", "Ach %", "Reward", "Status"].map(h => <th key={h} style={S.th}>{h}</th>)}
+                  {["EPI Store", "Seg", "Target", "Realisasi", "Ach %", "Budget Reward", "Cair 70%", "Status"].map(h => <th key={h} style={S.th}>{h}</th>)}
                 </tr></thead>
                 <tbody>
                   {dashRows.sort((a, b) => b.ach - a.ach).map((r, i) => {
@@ -816,6 +944,7 @@ export default function App() {
                         <td style={S.td}>{r.hasInput ? fmtS(r.real) : "-"}</td>
                         <td style={{ ...S.td, fontWeight: 700, color: st.c }}>{r.hasInput ? pct(r.ach) : "-"}</td>
                         <td style={{ ...S.td, color: "#d4af37", fontWeight: 600 }}>{r.totalReward > 0 ? fmt(r.totalReward) : "-"}</td>
+                        <td style={{ ...S.td, color: "#4ade80", fontWeight: 600 }}>{r.monthlyReward > 0 ? fmt(r.monthlyReward) : "-"}</td>
                         <td style={S.td}><span style={S.badge(st)}>{st.t}</span></td>
                       </tr>
                     );
@@ -851,7 +980,8 @@ export default function App() {
               <div style={S.kpi}><div style={S.label}>Target Tahun</div><div style={S.kpiV}>{fmtS(episYr.t)}</div></div>
               <div style={S.kpi}><div style={S.label}>Realisasi Tahun</div><div style={S.kpiV}>{fmtS(episYr.r)}</div></div>
               <div style={S.kpi}><div style={S.label}>Ach Tahun</div><div style={{ ...S.kpiV, color: episYr.ach >= 100 ? "#4ade80" : episYr.ach >= 75 ? "#60a5fa" : "#f87171" }}>{pct(episYr.ach)}</div></div>
-              <div style={S.kpi}><div style={S.label}>Total Reward Tahun</div><div style={{ ...S.kpiV, color: "#d4af37" }}>{fmt(episYr.rw)}</div></div>
+              <div style={S.kpi}><div style={S.label}>Budget Reward Tahun</div><div style={{ ...S.kpiV, color: "#d4af37" }}>{fmt(episYr.rw)}</div><div style={{ fontSize: 11, color: "#94a3b8" }}>Cair bulanan: {fmtS(episYr.monthly)}</div></div>
+              <div style={S.kpi}><div style={S.label}>Pool Q / Annual</div><div style={{ ...S.kpiV, color: "#93c5fd" }}>{fmtS(episYr.quarterly)} / {fmtS(episYr.annual)}</div><div style={{ fontSize: 11, color: "#94a3b8" }}>Estimasi annual cair: {fmtS(episYr.annualPayout)}</div></div>
             </div>
 
             <div style={{ ...S.card, padding: 12 }}>
@@ -896,7 +1026,7 @@ export default function App() {
             <div style={{ ...S.card, overflowX: "auto", padding: 8 }}>
               <table style={{ borderCollapse: "collapse", width: "100%" }}>
                 <thead><tr>
-                  {["Bulan", "Target", "Realisasi", "Gap", "Ach %", "Tier Emas", "Tier Perak", "Reward", "Status", "BE"].map(h => <th key={h} style={S.th}>{h}</th>)}
+                  {["Bulan", "Target", "Realisasi", "Gap", "Ach %", "Tier Emas", "Tier Perak", "Budget", "Cair 70%", "Pool Q", "Pool Annual", "Status", "BE"].map(h => <th key={h} style={S.th}>{h}</th>)}
                 </tr></thead>
                 <tbody>
                   {episRows.map((r, mi) => {
@@ -911,6 +1041,9 @@ export default function App() {
                         <td style={S.td}>{r.hasInput ? r.emasTier.name : "-"}</td>
                         <td style={S.td}>{r.hasInput ? r.perakTier.name : "-"}</td>
                         <td style={{ ...S.td, color: "#d4af37", fontWeight: 600 }}>{r.totalReward > 0 ? fmt(r.totalReward) : "-"}</td>
+                        <td style={{ ...S.td, color: "#4ade80", fontWeight: 600 }}>{r.monthlyReward > 0 ? fmt(r.monthlyReward) : "-"}</td>
+                        <td style={S.td}>{r.quarterlyPool > 0 ? fmt(r.quarterlyPool) : "-"}</td>
+                        <td style={S.td}>{r.annualPool > 0 ? fmt(r.annualPool) : "-"}</td>
                         <td style={S.td}><span style={S.badge(st)}>{st.t}</span></td>
                         <td style={{ ...S.td, fontSize: 11, color: "#94a3b8" }}>{r.be || "-"}</td>
                       </tr>
@@ -932,6 +1065,13 @@ export default function App() {
               </select>
             </div>
 
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
+              <div style={S.kpi}><div style={S.label}>Budget Reward {MONTHS[rMonth]}</div><div style={{ ...S.kpiV, color: "#d4af37" }}>{fmt(rewardMonthKPI.budget)}</div><div style={{ fontSize: 11, color: "#94a3b8" }}>Total 100%</div></div>
+              <div style={S.kpi}><div style={S.label}>Cair Bulanan 70%</div><div style={{ ...S.kpiV, color: "#4ade80" }}>{fmt(rewardMonthKPI.monthly)}</div><div style={{ fontSize: 11, color: "#94a3b8" }}>Dibayarkan setiap bulan</div></div>
+              <div style={S.kpi}><div style={S.label}>Pool Quarter 20%</div><div style={{ ...S.kpiV, color: "#93c5fd" }}>{fmt(rewardQuarter.pool)}</div><div style={{ fontSize: 11, color: "#94a3b8" }}>{rewardQuarter.label} eligible: {fmtS(rewardQuarter.payout)}</div></div>
+              <div style={S.kpi}><div style={S.label}>Pool Annual 10%</div><div style={{ ...S.kpiV, color: "#c4b5fd" }}>{fmt(rewardAnnual.pool)}</div><div style={{ fontSize: 11, color: "#94a3b8" }}>Estimasi cair: {fmtS(rewardAnnual.payout)}</div></div>
+            </div>
+
             <div style={{ ...S.card, overflowX: "auto", padding: 8 }}>
               <div style={{ fontWeight: 800, fontSize: 14, padding: "6px 8px", display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ background: "linear-gradient(135deg,#cbd5e1,#94a3b8,#d4af37,#f5d78e)", WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}>Detail Reward {MONTHS[rMonth]} (per EPI Store)</span>
@@ -942,7 +1082,7 @@ export default function App() {
                     <span key="ge" style={{ fontSize: 10, fontWeight: 800, padding: "2px 8px", borderRadius: 99, background: "linear-gradient(135deg,#b8860b,#f5d78e)", color: "#1a1200" }}>Omzet Emas</span>,
                     "Tier Emas", "Reward Emas",
                     <span key="pe" style={{ fontSize: 10, fontWeight: 800, padding: "2px 8px", borderRadius: 99, background: "linear-gradient(135deg,#94a3b8,#e2e8f0)", color: "#0f172a" }}>Omzet Perak</span>,
-                    "Tier Perak", "Reward Perak", "Total Reward"].map((h, hi) => <th key={hi} style={S.th}>{h}</th>)}
+                    "Tier Perak", "Reward Perak", "Budget 100%", "Cair 70%", "Pool Q 20%", "Pool Annual 10%"].map((h, hi) => <th key={hi} style={S.th}>{h}</th>)}
                 </tr></thead>
                 <tbody>
                   {rewardRows.map((r, i) => (
@@ -955,6 +1095,9 @@ export default function App() {
                       <td style={{ ...S.td, color: r.perakTier.rate > 0 ? "#cbd5e1" : "#64748b" }}>{r.hasInput ? r.perakTier.name : "-"}</td>
                       <td style={S.td}>{r.perakTier.reward > 0 ? fmt(r.perakTier.reward) : "-"}</td>
                       <td style={{ ...S.td, color: "#d4af37", fontWeight: 800 }}>{r.totalReward > 0 ? fmt(r.totalReward) : "Rp 0"}</td>
+                      <td style={{ ...S.td, color: "#4ade80", fontWeight: 700 }}>{r.monthlyReward > 0 ? fmt(r.monthlyReward) : "-"}</td>
+                      <td style={S.td}>{r.quarterlyPool > 0 ? fmt(r.quarterlyPool) : "-"}</td>
+                      <td style={S.td}>{r.annualPool > 0 ? fmt(r.annualPool) : "-"}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -962,19 +1105,46 @@ export default function App() {
             </div>
 
             <div style={{ ...S.card, overflowX: "auto", padding: 8 }}>
+              <div style={{ fontWeight: 800, fontSize: 14, color: "#93c5fd", padding: "6px 8px" }}>Reward Quarterly {rewardQuarter.label}</div>
+              <table style={{ borderCollapse: "collapse", width: "100%" }}>
+                <thead><tr>{["EPI Store", "Ach Quarter", "Pool 20%", "Status", "Cair Quarterly"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
+                <tbody>
+                  {rewardQuarter.rows.filter(r => r.pool > 0).map((r, i) => {
+                    const eligible = r.ach >= PAYOUT_THRESHOLDS.quarterly;
+                    return (
+                      <tr key={i}>
+                        <td style={{ ...S.td, fontWeight: 700 }}>{r.st.n}</td>
+                        <td style={{ ...S.td, fontWeight: 700, color: eligible ? "#4ade80" : "#f87171" }}>{pct(r.ach)}</td>
+                        <td style={S.td}>{fmt(r.pool)}</td>
+                        <td style={S.td}>{eligible ? "Eligible" : "Belum Eligible"}</td>
+                        <td style={{ ...S.td, color: eligible ? "#93c5fd" : "#64748b", fontWeight: 700 }}>{eligible ? fmt(r.payout) : "-"}</td>
+                      </tr>
+                    );
+                  })}
+                  {rewardQuarter.rows.filter(r => r.pool > 0).length === 0 && (
+                    <tr><td colSpan={5} style={{ ...S.td, textAlign: "center", color: "#64748b" }}>Belum ada pool quarterly.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div style={{ ...S.card, overflowX: "auto", padding: 8 }}>
               <div style={{ fontWeight: 800, fontSize: 14, color: "#d4af37", padding: "6px 8px" }}>🏆 Leaderboard Reward Akumulasi (Full Year)</div>
               <table style={{ borderCollapse: "collapse", width: "100%" }}>
-                <thead><tr>{["#", "EPI Store", "Total Reward YTD"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
+                <thead><tr>{["#", "EPI Store", "Budget Reward YTD", "Cair Bulanan", "Pool Q", "Pool Annual"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
                 <tbody>
                   {rewardYTD.filter(r => r.rw > 0).map((r, i) => (
                     <tr key={i}>
                       <td style={{ ...S.td, fontWeight: 800, color: i < 3 ? "#d4af37" : "#94a3b8" }}>{i + 1}</td>
                       <td style={{ ...S.td, fontWeight: 700 }}>{r.n}</td>
                       <td style={{ ...S.td, color: "#d4af37", fontWeight: 700 }}>{fmt(r.rw)}</td>
+                      <td style={{ ...S.td, color: "#4ade80", fontWeight: 700 }}>{fmt(r.monthly)}</td>
+                      <td style={S.td}>{fmt(r.quarterly)}</td>
+                      <td style={S.td}>{fmt(r.annual)}</td>
                     </tr>
                   ))}
                   {rewardYTD.filter(r => r.rw > 0).length === 0 && (
-                    <tr><td colSpan={3} style={{ ...S.td, textAlign: "center", color: "#64748b" }}>Belum ada reward cair.</td></tr>
+                    <tr><td colSpan={6} style={{ ...S.td, textAlign: "center", color: "#64748b" }}>Belum ada reward cair.</td></tr>
                   )}
                 </tbody>
               </table>
@@ -989,13 +1159,27 @@ export default function App() {
               <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 8, color: "#d4af37" }}>📥 Import Data Realisasi (CSV)</div>
               <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 10, lineHeight: 1.6 }}>
                 Format per baris: <code style={{ color: "#fbbf24" }}>NAMA EPI STORE,BULAN,GOLDGRAM,MEEZAN GOLD,SILVERGRAM</code><br />
-                Bulan gunakan singkatan JAN-DEC. Angka tanpa titik/koma (contoh: 1422430000). Baris pertama boleh berupa header (akan diabaikan).
+                Upload file .csv atau tempel isi CSV di kolom berikut. Bulan gunakan singkatan JAN-DEC. Angka tanpa titik/koma (contoh: 1422430000). Baris pertama boleh berupa header (akan diabaikan).
+              </div>
+              <div style={{ marginBottom: 10 }}>
+                <label style={S.label}>Upload File CSV</label>
+                <input
+                  type="file"
+                  accept=".csv,text/csv"
+                  style={S.input}
+                  onChange={handleCSVFile}
+                />
+                {csvFileName && <div style={{ marginTop: 6, fontSize: 11, color: "#94a3b8" }}>File dimuat: <b style={{ color: "#e2e8f0" }}>{csvFileName}</b></div>}
               </div>
               <textarea
                 style={{ ...S.input, minHeight: 140, fontFamily: "monospace", fontSize: 12, resize: "vertical" }}
                 placeholder={"EPIS TANGERANG,JAN,1422430000,972646000,0\nEPIS MALANG,JAN,0,0,866478400\nEPIS TANGERANG,FEB,2045728000,349749000,0"}
                 value={csvText}
-                onChange={e => setCsvText(e.target.value)}
+                onChange={e => {
+                  setCsvText(e.target.value);
+                  setCsvFileName("");
+                  setImportPreview(null);
+                }}
               />
               <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
                 <button style={{ ...S.btn, flex: 1 }} onClick={parseCSV}>🔍 Preview Import</button>
@@ -1167,24 +1351,44 @@ export default function App() {
               <div style={{ fontWeight: 800, fontSize: 14, color: "#d4af37", marginBottom: 8 }}>Skema Reward Challenge Bulanan 2026</div>
               <div style={{ overflowX: "auto" }}>
                 <table style={{ borderCollapse: "collapse", width: "100%" }}>
-                  <thead><tr>{["Kategori", "Tier", "Min. Omzet Bulanan", "Rate", "Basis"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
+                  <thead><tr>{["Kategori", "Tier", "Min. Omzet Bulanan", "GPM Rate", "BM", "% Reward", "Basis"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
                   <tbody>
-                    {[["EMAS", "Tier 1", fmt(750e6), "0,10%", "GOLDGRAM + MEEZAN GOLD"],
-                    ["EMAS", "Tier 2", fmt(1e9), "0,12%", "GOLDGRAM + MEEZAN GOLD"],
-                    ["EMAS", "Tier 3", fmt(1.5e9), "0,15%", "GOLDGRAM + MEEZAN GOLD"],
-                    ["PERAK", "Tier 1", fmt(150e6), "0,10%", "SILVERGRAM"],
-                    ["PERAK", "Tier 2", fmt(300e6), "0,15%", "SILVERGRAM"],
-                    ["PERAK", "Tier 3", fmt(1e9), "0,20%", "SILVERGRAM"]].map((row, i) => (
+                    {[
+                      ...EMAS_TIERS.slice().reverse().map((tier) => ["EMAS", tier.name.replace("Emas ", ""), fmt(tier.min), pctRate(GPM_RATES.emas), pctRate(tier.bm), pctRate(GPM_RATES.emas * tier.bm), "GOLDGRAM + MEEZAN GOLD"]),
+                      ...PERAK_TIERS.slice().reverse().map((tier) => ["PERAK", tier.name.replace("Perak ", ""), fmt(tier.min), pctRate(GPM_RATES.perak), pctRate(tier.bm), pctRate(GPM_RATES.perak * tier.bm), "SILVERGRAM"]),
+                    ].map((row, i) => (
                       <tr key={i}>{row.map((c, j) => <td key={j} style={{ ...S.td, color: row[0] === "EMAS" ? (j === 0 ? "#fbbf24" : "#e2e8f0") : (j === 0 ? "#cbd5e1" : "#e2e8f0"), fontWeight: j === 0 ? 700 : 400 }}>{c}</td>)}</tr>
                     ))}
                   </tbody>
                 </table>
               </div>
               <ul style={{ fontSize: 12, color: "#94a3b8", paddingLeft: 18, marginTop: 10, lineHeight: 1.7 }}>
-                <li>Reward dihitung per kategori, per EPI Store, dari omzet aktual bulan terpilih.</li>
+                <li>GPM Emas = 4% x omzet GOLDGRAM + MEEZAN GOLD. GPM Perak = 20% x omzet SILVERGRAM.</li>
+                <li>Reward dihitung dari GPM x BM sesuai tier omzet aktual bulan terpilih.</li>
                 <li>Di bawah tier minimum → reward kategori Rp 0. Cair parsial jika hanya satu kategori lolos.</li>
-                <li>Berlaku sepanjang tahun 2026 (JAN–DEC).</li>
+                <li>Berlaku mulai JUN 2026. JAN-MAY tetap tercatat sebagai realisasi performa, tetapi tidak membentuk reward.</li>
               </ul>
+            </div>
+
+            <div style={S.card}>
+              <div style={{ fontWeight: 800, fontSize: 14, color: "#d4af37", marginBottom: 8 }}>Distribusi Payout Reward</div>
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ borderCollapse: "collapse", width: "100%" }}>
+                  <thead><tr>{["Kantong Payout", "Porsi", "Syarat", "Catatan"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
+                  <tbody>
+                    {[
+                      ["Reward Bulanan", pctRate(PAYOUT_DISTRIBUTION.monthly), "Eligible jika reward budget terbentuk", "Dibayarkan setiap bulan"],
+                      ["Reward Quarterly", pctRate(PAYOUT_DISTRIBUTION.quarterly), `Pencapaian quarter >= ${PAYOUT_THRESHOLDS.quarterly}%`, "Pool dari akumulasi 20% reward bulanan, cair full jika eligible"],
+                      ["Reward Akhir Tahun", pctRate(PAYOUT_DISTRIBUTION.annual), `Pencapaian tahunan >= ${PAYOUT_THRESHOLDS.annual}%`, "85%-99,99% proporsional; >=100% full"],
+                    ].map((row, i) => (
+                      <tr key={i}>{row.map((c, j) => <td key={j} style={{ ...S.td, fontWeight: j === 0 ? 700 : 400 }}>{c}</td>)}</tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 10, lineHeight: 1.7 }}>
+                Total budget reward tetap 100%. Sistem hanya membagi pola pencairan menjadi 70% bulanan, 20% quarterly, dan 10% akhir tahun. Distribusi ini mulai dihitung dari JUN 2026.
+              </div>
             </div>
 
             <div style={S.card}>

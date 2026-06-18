@@ -657,6 +657,11 @@ export default function App() {
   };
   const applyImport = async () => {
     if (!importPreview || importPreview.rows.length === 0) return;
+    if (importPreview.errors.length > 0) {
+      setImportMsg({ ok: false, t: "Import dibatalkan. Perbaiki semua EPI Store/bulan yang tidak sesuai master sebelum menyimpan." });
+      setTimeout(() => setImportMsg(null), 5000);
+      return;
+    }
     try {
       const payload = await api("/api/realisations/import", {
         method: "POST",
@@ -1159,7 +1164,7 @@ export default function App() {
               <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 8, color: "#d4af37" }}>📥 Import Data Realisasi (CSV)</div>
               <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 10, lineHeight: 1.6 }}>
                 Format per baris: <code style={{ color: "#fbbf24" }}>NAMA EPI STORE,BULAN,GOLDGRAM,MEEZAN GOLD,SILVERGRAM</code><br />
-                Upload file .csv atau tempel isi CSV di kolom berikut. Bulan gunakan singkatan JAN-DEC. Angka tanpa titik/koma (contoh: 1422430000). Baris pertama boleh berupa header (akan diabaikan).
+                Upload file .csv atau tempel isi CSV di kolom berikut. Nama EPI Store wajib sama dengan master existing. Bulan gunakan singkatan JAN-DEC. Angka tanpa titik/koma (contoh: 1422430000). Baris pertama boleh berupa header (akan diabaikan).
               </div>
               <div style={{ marginBottom: 10 }}>
                 <label style={S.label}>Upload File CSV</label>
@@ -1189,7 +1194,7 @@ export default function App() {
                 <div style={{ marginTop: 12 }}>
                   {importPreview.errors.length > 0 && (
                     <div style={{ padding: 10, borderRadius: 8, background: "#1c1410", border: "1px solid #92400e", marginBottom: 8 }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: "#fbbf24", marginBottom: 4 }}>⚠️ {importPreview.errors.length} baris bermasalah (akan diabaikan):</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#fbbf24", marginBottom: 4 }}>⚠️ {importPreview.errors.length} baris bermasalah (wajib diperbaiki sebelum import):</div>
                       {importPreview.errors.map((e, i) => <div key={i} style={{ fontSize: 11, color: "#fca5a5" }}>{e}</div>)}
                     </div>
                   )}
@@ -1211,7 +1216,13 @@ export default function App() {
                           </tbody>
                         </table>
                       </div>
-                      <button style={S.btn} onClick={applyImport}>✅ Konfirmasi & Simpan {importPreview.rows.length} Baris</button>
+                      <button
+                        style={{ ...S.btn, opacity: importPreview.errors.length > 0 ? 0.55 : 1 }}
+                        disabled={importPreview.errors.length > 0}
+                        onClick={applyImport}
+                      >
+                        ✅ Konfirmasi & Simpan {importPreview.rows.length} Baris
+                      </button>
                     </>
                   )}
                 </div>

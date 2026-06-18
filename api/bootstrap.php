@@ -179,14 +179,7 @@ function ensure_user_stores_schema(): void
              FOREIGN KEY (store_code) REFERENCES stores(store_code) ON DELETE CASCADE
          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
     );
-    $columns = db()->prepare(
-        "SELECT COLUMN_NAME
-         FROM INFORMATION_SCHEMA.COLUMNS
-         WHERE TABLE_SCHEMA = DATABASE()
-           AND TABLE_NAME = 'user_stores'"
-    );
-    $columns->execute();
-    $columnNames = $columns->fetchAll(PDO::FETCH_COLUMN);
+    $columnNames = table_columns('user_stores');
     if (!in_array('store_code', $columnNames, true)) {
         db()->exec(
             "ALTER TABLE user_stores
@@ -206,17 +199,43 @@ function ensure_user_stores_schema(): void
              MODIFY store_code SMALLINT UNSIGNED NOT NULL"
         );
     }
-    db()->exec(
-        "INSERT IGNORE INTO user_stores (user_id, store_code)
-         SELECT u.id, s.store_code
-         FROM users u
-         JOIN stores s
-         WHERE u.role <> 'admin'
-           AND NOT EXISTS (
-             SELECT 1 FROM user_stores us WHERE us.user_id = u.id
-           )"
-    );
+    $columnNames = table_columns('user_stores');
+    if (in_array('store_id', $columnNames, true)) {
+        db()->exec(
+            "INSERT IGNORE INTO user_stores (user_id, store_id, store_code)
+             SELECT u.id, s.id, s.store_code
+             FROM users u
+             JOIN stores s
+             WHERE u.role <> 'admin'
+               AND NOT EXISTS (
+                 SELECT 1 FROM user_stores us WHERE us.user_id = u.id
+               )"
+        );
+    } else {
+        db()->exec(
+            "INSERT IGNORE INTO user_stores (user_id, store_code)
+             SELECT u.id, s.store_code
+             FROM users u
+             JOIN stores s
+             WHERE u.role <> 'admin'
+               AND NOT EXISTS (
+                 SELECT 1 FROM user_stores us WHERE us.user_id = u.id
+               )"
+        );
+    }
     $ready = true;
+}
+
+function table_columns(string $tableName): array
+{
+    $statement = db()->prepare(
+        "SELECT COLUMN_NAME
+         FROM INFORMATION_SCHEMA.COLUMNS
+         WHERE TABLE_SCHEMA = DATABASE()
+           AND TABLE_NAME = ?"
+    );
+    $statement->execute([$tableName]);
+    return $statement->fetchAll(PDO::FETCH_COLUMN);
 }
 
 function require_admin(array $user): void

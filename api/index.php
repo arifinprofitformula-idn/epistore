@@ -612,10 +612,21 @@ function assign_stores(PDO $pdo, int $userId, array $storeCodes): void
     if ($storeCodes === []) {
         return;
     }
-    $insert = $pdo->prepare(
-        'INSERT INTO user_stores (user_id, store_code) VALUES (?, ?)'
-    );
-    foreach ($storeCodes as $storeCode) {
-        $insert->execute([$userId, $storeCode]);
+    $columns = table_columns('user_stores');
+    if (in_array('store_id', $columns, true)) {
+        $insert = $pdo->prepare(
+            'INSERT INTO user_stores (user_id, store_id, store_code)
+             SELECT ?, id, store_code FROM stores WHERE store_code = ?'
+        );
+        foreach ($storeCodes as $storeCode) {
+            $insert->execute([$userId, $storeCode]);
+        }
+    } else {
+        $insert = $pdo->prepare(
+            'INSERT INTO user_stores (user_id, store_code) VALUES (?, ?)'
+        );
+        foreach ($storeCodes as $storeCode) {
+            $insert->execute([$userId, $storeCode]);
+        }
     }
 }

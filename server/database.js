@@ -78,6 +78,16 @@ export async function initializeDatabase() {
   `);
 
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS user_stores (
+      user_id BIGINT UNSIGNED NOT NULL,
+      store_code SMALLINT UNSIGNED NOT NULL,
+      PRIMARY KEY (user_id, store_code),
+      CONSTRAINT fk_user_stores_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      CONSTRAINT fk_user_stores_store FOREIGN KEY (store_code) REFERENCES stores(store_code) ON DELETE CASCADE
+    ) ENGINE=InnoDB
+  `);
+
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS realisations (
       id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
       store_id BIGINT UNSIGNED NOT NULL,
@@ -199,6 +209,17 @@ async function seedDatabase() {
          )`,
     );
 
+    await connection.query(
+      `INSERT IGNORE INTO user_stores (user_id, store_code)
+       SELECT u.id, s.store_code
+       FROM users u
+       JOIN stores s
+       WHERE u.role <> 'admin'
+         AND NOT EXISTS (
+           SELECT 1 FROM user_stores us WHERE us.user_id = u.id
+         )`,
+    );
+
     await connection.commit();
   } catch (error) {
     await connection.rollback();
@@ -223,11 +244,20 @@ export async function getSessionUser(userId) {
     [userId],
   );
 
+  const [stores] = await pool.query(
+    `SELECT store_code AS storeCode
+     FROM user_stores
+     WHERE user_id = ?
+     ORDER BY store_code`,
+    [userId],
+  );
+
   return {
     id: user.id,
     name: user.name,
     role: user.role,
     brandCodes: brands.map((brand) => brand.brandCode),
-    canReadAllStores: true,
+    storeCodes: stores.map((store) => Number(store.storeCode)),
+    canReadAllStores: user.role === "admin",
   };
 }

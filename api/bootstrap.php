@@ -113,10 +113,19 @@ function session_user(bool $required = true): ?array
          ORDER BY brand_code'
     );
     $brands->execute([$userId]);
+    ensure_user_stores_schema();
+    $stores = db()->prepare(
+        'SELECT store_code
+         FROM user_stores
+         WHERE user_id = ?
+         ORDER BY store_code'
+    );
+    $stores->execute([$userId]);
     $user['id'] = (int) $user['id'];
     $user['isActive'] = (bool) $user['isActive'];
     $user['brandCodes'] = $brands->fetchAll(PDO::FETCH_COLUMN);
-    $user['canReadAllStores'] = true;
+    $user['storeCodes'] = array_map('intval', $stores->fetchAll(PDO::FETCH_COLUMN));
+    $user['canReadAllStores'] = $user['role'] === 'admin';
     return $user;
 }
 
@@ -142,6 +151,37 @@ function ensure_user_brands_schema(): void
          WHERE role = 'be'
            AND NOT EXISTS (
              SELECT 1 FROM user_brands ub WHERE ub.user_id = users.id
+           )"
+    );
+    $ready = true;
+}
+
+function ensure_user_stores_schema(): void
+{
+    static $ready = false;
+    if ($ready) {
+        return;
+    }
+
+    db()->exec(
+        "CREATE TABLE IF NOT EXISTS user_stores (
+           user_id BIGINT UNSIGNED NOT NULL,
+           store_code SMALLINT UNSIGNED NOT NULL,
+           PRIMARY KEY (user_id, store_code),
+           CONSTRAINT fk_php_user_stores_user
+             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+           CONSTRAINT fk_php_user_stores_store
+             FOREIGN KEY (store_code) REFERENCES stores(store_code) ON DELETE CASCADE
+         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+    );
+    db()->exec(
+        "INSERT IGNORE INTO user_stores (user_id, store_code)
+         SELECT u.id, s.store_code
+         FROM users u
+         JOIN stores s
+         WHERE u.role <> 'admin'
+           AND NOT EXISTS (
+             SELECT 1 FROM user_stores us WHERE us.user_id = u.id
            )"
     );
     $ready = true;
@@ -176,6 +216,21 @@ function normalize_brand_codes(mixed $values): array
         array_map('strval', $values),
         static fn (string $value): bool => in_array($value, $allowed, true),
     )));
+}
+
+function normalize_store_codes(mixed $values): array
+{
+    if (!is_array($values)) {
+        return [];
+    }
+    $codes = [];
+    foreach ($values as $value) {
+        $code = filter_var($value, FILTER_VALIDATE_INT);
+        if ($code !== false && $code >= 0) {
+            $codes[] = (int) $code;
+        }
+    }
+    return array_values(array_unique($codes));
 }
 
 function normalize_role(mixed $value): string

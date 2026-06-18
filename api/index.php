@@ -217,7 +217,24 @@ function login(): never
 
 function bootstrap_data(array $user): never
 {
-    // Read access is global: every authenticated user receives every EPIS realisation.
+    if ($user['role'] !== 'admin' && $user['storeCodes'] === []) {
+        json_response([
+            'data' => [],
+            'session' => $user,
+            'access' => [
+                'canReadAllStores' => false,
+                'readableStoreCodes' => [],
+                'writableBrandCodes' => $user['role'] === 'be' ? $user['brandCodes'] : [],
+            ],
+        ]);
+    }
+    $storeFilter = '';
+    $parameters = [APP_YEAR];
+    if ($user['role'] !== 'admin') {
+        $placeholders = implode(',', array_fill(0, count($user['storeCodes']), '?'));
+        $storeFilter = " AND s.store_code IN ({$placeholders})";
+        array_push($parameters, ...$user['storeCodes']);
+    }
     $statement = db()->prepare(
         'SELECT
            s.store_code AS storeIndex,
@@ -230,10 +247,10 @@ function bootstrap_data(array $user): never
            r.updated_at AS ts
          FROM realisations r
          JOIN stores s ON s.id = r.store_id
-         WHERE r.year = ?
+         WHERE r.year = ?' . $storeFilter . '
          ORDER BY s.store_code, r.month_index'
     );
-    $statement->execute([APP_YEAR]);
+    $statement->execute($parameters);
     $data = [];
     foreach ($statement as $row) {
         $data[$row['storeIndex'] . '-' . $row['monthIndex']] = [
@@ -249,7 +266,8 @@ function bootstrap_data(array $user): never
         'data' => $data,
         'session' => $user,
         'access' => [
-            'canReadAllStores' => true,
+            'canReadAllStores' => $user['role'] === 'admin',
+            'readableStoreCodes' => $user['role'] === 'admin' ? null : $user['storeCodes'],
             'writableBrandCodes' => $user['role'] === 'admin'
                 ? ['goldgram', 'meezan_gold', 'silvergram']
                 : $user['brandCodes'],
@@ -264,6 +282,9 @@ function save_realisation(array $user, int $storeIndex, int $monthIndex): never
     }
     if ($user['role'] !== 'admin' && $user['brandCodes'] === []) {
         json_response(['message' => 'Belum ada brand yang ditugaskan ke akun Anda.'], 403);
+    }
+    if ($user['role'] !== 'admin' && !in_array($storeIndex, $user['storeCodes'], true)) {
+        json_response(['message' => 'Akun ini tidak memiliki akses ke EPI Store tersebut.'], 403);
     }
 
     $body = request_body();
@@ -419,9 +440,11 @@ function list_users(): never
            u.name,
            u.role,
            u.is_active AS isActive,
-           GROUP_CONCAT(ub.brand_code ORDER BY ub.brand_code) AS brandCodes
+           GROUP_CONCAT(DISTINCT ub.brand_code ORDER BY ub.brand_code) AS brandCodes,
+           GROUP_CONCAT(DISTINCT us.store_code ORDER BY us.store_code) AS storeCodes
          FROM users u
          LEFT JOIN user_brands ub ON ub.user_id = u.id
+         LEFT JOIN user_stores us ON us.user_id = u.id
          GROUP BY u.id
          ORDER BY u.role, u.name'
     )->fetchAll();
@@ -431,6 +454,9 @@ function list_users(): never
         $row['brandCodes'] = $row['brandCodes'] === null
             ? []
             : explode(',', $row['brandCodes']);
+        $row['storeCodes'] = $row['storeCodes'] === null
+            ? []
+            : array_map('intval', explode(',', $row['storeCodes']));
     }
     json_response(['users' => $rows]);
 }
@@ -460,6 +486,7 @@ function create_user(array $admin): never
     $pin = trim((string) ($body['pin'] ?? ''));
     $role = normalize_role($body['role'] ?? 'be');
     $brands = normalize_brand_codes($body['brandCodes'] ?? []);
+    $stores = normalize_store_codes($body['storeCodes'] ?? []);
     if ($name === '' || !valid_pin($pin)) {
         json_response(['message' => 'Nama dan PIN 4-6 digit wajib diisi.'], 400);
     }
@@ -474,10 +501,12 @@ function create_user(array $admin): never
         $statement->execute([$name, $role, password_hash($pin, PASSWORD_DEFAULT)]);
         $userId = (int) $pdo->lastInsertId();
         assign_brands($pdo, $userId, $role === 'be' ? $brands : []);
+        assign_stores($pdo, $userId, $role === 'admin' ? [] : $stores);
         audit($pdo, $admin['id'], 'create', 'user', (string) $userId, null, [
             'name' => $name,
             'role' => $role,
             'brandCodes' => $brands,
+            'storeCodes' => $stores,
         ]);
         $pdo->commit();
         json_response(['id' => $userId], 201);
@@ -496,6 +525,7 @@ function update_user(array $admin, int $userId): never
     $role = normalize_role($body['role'] ?? 'be');
     $isActive = ($body['isActive'] ?? true) !== false;
     $brands = normalize_brand_codes($body['brandCodes'] ?? []);
+    $stores = normalize_store_codes($body['storeCodes'] ?? []);
     if ($name === '' || ($pin !== '' && !valid_pin($pin))) {
         json_response(['message' => 'Data pengguna tidak valid.'], 400);
     }
@@ -538,11 +568,13 @@ function update_user(array $admin, int $userId): never
             $statement->execute([$name, $role, $isActive, $userId]);
         }
         assign_brands($pdo, $userId, $role === 'be' ? $brands : []);
+        assign_stores($pdo, $userId, $role === 'admin' ? [] : $stores);
         audit($pdo, $admin['id'], 'update', 'user', (string) $userId, $old, [
             'name' => $name,
             'role' => $role,
             'isActive' => $isActive,
             'brandCodes' => $brands,
+            'storeCodes' => $stores,
             'pinChanged' => $pin !== '',
         ]);
         $pdo->commit();
@@ -567,5 +599,20 @@ function assign_brands(PDO $pdo, int $userId, array $brandCodes): void
     );
     foreach ($brandCodes as $brandCode) {
         $insert->execute([$userId, $brandCode]);
+    }
+}
+
+function assign_stores(PDO $pdo, int $userId, array $storeCodes): void
+{
+    $delete = $pdo->prepare('DELETE FROM user_stores WHERE user_id = ?');
+    $delete->execute([$userId]);
+    if ($storeCodes === []) {
+        return;
+    }
+    $insert = $pdo->prepare(
+        'INSERT INTO user_stores (user_id, store_code) VALUES (?, ?)'
+    );
+    foreach ($storeCodes as $storeCode) {
+        $insert->execute([$userId, $storeCode]);
     }
 }

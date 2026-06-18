@@ -300,6 +300,7 @@ export default function App() {
   const [newPinName, setNewPinName] = useState("");
   const [newUserRole, setNewUserRole] = useState("be");
   const [newUserBrand, setNewUserBrand] = useState("goldgram");
+  const [newUserStores, setNewUserStores] = useState([]);
   const [userPinChanges, setUserPinChanges] = useState({});
 
   // CSV / bulk import
@@ -337,6 +338,21 @@ export default function App() {
     setFS(d && d.s ? d.s.toLocaleString("id-ID") : "");
     setFNote(d && d.note ? d.note : "");
   }, [fStore, fMonth, data]);
+
+  const allStoreCodes = useMemo(() => STORES.map((_, index) => index), []);
+  const accessibleStoreCodes = useMemo(() => {
+    if (!session) return [];
+    if (session.role === "admin" || session.canReadAllStores) return allStoreCodes;
+    const allowed = Array.isArray(session.storeCodes) ? session.storeCodes.map(Number) : [];
+    return allStoreCodes.filter((code) => allowed.includes(code));
+  }, [session, allStoreCodes]);
+  const accessibleStoreSet = useMemo(() => new Set(accessibleStoreCodes), [accessibleStoreCodes]);
+
+  useEffect(() => {
+    if (!session || accessibleStoreCodes.length === 0) return;
+    if (!accessibleStoreSet.has(fStore)) setFStore(accessibleStoreCodes[0]);
+    if (!accessibleStoreSet.has(pStore)) setPStore(accessibleStoreCodes[0]);
+  }, [session, accessibleStoreCodes, accessibleStoreSet, fStore, pStore]);
 
   const doLogin = async () => {
     const pin = pinInput.trim();
@@ -453,11 +469,11 @@ export default function App() {
 
   // ===== DASHBOARD COMPUTATIONS =====
   const dashRows = useMemo(() => {
-    return STORES.map((_, i) => getRow(i, dMonth)).filter(r => dSeg === "ALL" || r.st.seg === dSeg);
-  }, [data, dMonth, dSeg]);
+    return accessibleStoreCodes.map((i) => getRow(i, dMonth)).filter(r => dSeg === "ALL" || r.st.seg === dSeg);
+  }, [data, dMonth, dSeg, accessibleStoreCodes]);
 
   const dashKPI = useMemo(() => {
-    const rows = STORES.map((_, i) => getRow(i, dMonth));
+    const rows = accessibleStoreCodes.map((i) => getRow(i, dMonth));
     const totReal = rows.reduce((a, r) => a + r.real, 0);
     const totTarget = rows.reduce((a, r) => a + r.target, 0);
     const totReward = rows.reduce((a, r) => a + r.totalReward, 0);
@@ -469,13 +485,13 @@ export default function App() {
     const lolos = rows.filter(r => r.totalReward > 0).length;
     let ytdT = 0, ytdR = 0, ytdRw = 0, ytdMonthly = 0, ytdQuarterlyPool = 0, ytdAnnualPool = 0;
     for (let m = 0; m <= dMonth; m++) {
-      STORES.forEach((_, i) => {
+      accessibleStoreCodes.forEach((i) => {
         const r = getRow(i, m);
         ytdT += r.target; ytdR += r.real; ytdRw += r.totalReward; ytdMonthly += r.monthlyReward; ytdQuarterlyPool += r.quarterlyPool; ytdAnnualPool += r.annualPool;
       });
     }
     return { totReal, totTarget, totReward, monthlyReward, quarterlyPool, annualPool, emasReward, perakReward, lolos, ytdT, ytdR, ytdRw, ytdMonthly, ytdQuarterlyPool, ytdAnnualPool, ytdAch: ytdT > 0 ? ytdR / ytdT * 100 : 0 };
-  }, [data, dMonth]);
+  }, [data, dMonth, accessibleStoreCodes]);
 
   const dashBrandKPI = useMemo(() => {
     return BRANDS.map((brand) => {
@@ -519,7 +535,7 @@ export default function App() {
   }, [episRows]);
 
   // ===== REWARD TAB =====
-  const rewardRows = useMemo(() => STORES.map((_, i) => getRow(i, rMonth)).sort((a, b) => b.totalReward - a.totalReward), [data, rMonth]);
+  const rewardRows = useMemo(() => accessibleStoreCodes.map((i) => getRow(i, rMonth)).sort((a, b) => b.totalReward - a.totalReward), [data, rMonth, accessibleStoreCodes]);
   const rewardMonthKPI = useMemo(() => ({
     budget: rewardRows.reduce((a, r) => a + r.totalReward, 0),
     monthly: rewardRows.reduce((a, r) => a + r.monthlyReward, 0),
@@ -527,7 +543,7 @@ export default function App() {
     annual: rewardRows.reduce((a, r) => a + r.annualPool, 0),
   }), [rewardRows]);
   const rewardQuarter = useMemo(() => {
-    const rows = STORES.map((_, i) => ({ st: STORES[i], ...getStoreQuarter(i, rMonth) })).sort((a, b) => b.payout - a.payout || b.pool - a.pool);
+    const rows = accessibleStoreCodes.map((i) => ({ st: STORES[i], ...getStoreQuarter(i, rMonth) })).sort((a, b) => b.payout - a.payout || b.pool - a.pool);
     return {
       rows,
       pool: rows.reduce((a, r) => a + r.pool, 0),
@@ -535,18 +551,18 @@ export default function App() {
       eligible: rows.filter(r => r.payout > 0).length,
       label: `Q${Math.floor(rMonth / 3) + 1} (${MONTHS[quarterStart(rMonth)]}-${MONTHS[quarterStart(rMonth) + 2]})`,
     };
-  }, [data, rMonth]);
+  }, [data, rMonth, accessibleStoreCodes]);
   const rewardAnnual = useMemo(() => {
-    const rows = STORES.map((_, i) => ({ st: STORES[i], ...getStoreAnnual(i) })).sort((a, b) => b.payout - a.payout || b.pool - a.pool);
+    const rows = accessibleStoreCodes.map((i) => ({ st: STORES[i], ...getStoreAnnual(i) })).sort((a, b) => b.payout - a.payout || b.pool - a.pool);
     return {
       rows,
       pool: rows.reduce((a, r) => a + r.pool, 0),
       payout: rows.reduce((a, r) => a + r.payout, 0),
       eligible: rows.filter(r => r.payout > 0).length,
     };
-  }, [data]);
+  }, [data, accessibleStoreCodes]);
   const rewardYTD = useMemo(() => {
-    return STORES.map((_, i) => {
+    return accessibleStoreCodes.map((i) => {
       let rw = 0, monthly = 0, quarterly = 0, annual = 0;
       for (let m = 0; m < 12; m++) {
         const row = getRow(i, m);
@@ -554,7 +570,7 @@ export default function App() {
       }
       return { n: STORES[i].n, rw, monthly, quarterly, annual };
     }).sort((a, b) => b.rw - a.rw);
-  }, [data]);
+  }, [data, accessibleStoreCodes]);
 
   // ===== ADMIN: User management =====
   const addUser = async () => {
@@ -570,12 +586,14 @@ export default function App() {
           pin,
           role: newUserRole,
           brandCodes: newUserRole === "be" ? [newUserBrand] : [],
+          storeCodes: newUserRole === "admin" ? [] : newUserStores,
         }),
       });
       await loadUsers();
       setImportMsg({ ok: true, t: `Akun ${name} berhasil dibuat.` });
       setNewPin("");
       setNewPinName("");
+      setNewUserStores([]);
     } catch (error) {
       setImportMsg({ ok: false, t: error.message });
     }
@@ -597,6 +615,7 @@ export default function App() {
           role: user.role,
           isActive: user.isActive,
           brandCodes: user.role === "be" ? user.brandCodes : [],
+          storeCodes: user.role === "admin" ? [] : (user.storeCodes || []),
           pin: userPinChanges[user.id] || "",
         }),
       });
@@ -690,6 +709,10 @@ export default function App() {
     ? BRANDS.map((brand) => brand.code)
     : session?.brandCodes || [];
   const canEditBrand = (brandCode) => assignedBrandCodes.includes(brandCode);
+  const accessibleTotalTarget = accessibleStoreCodes.reduce((total, i) => {
+    const store = STORES[i];
+    return store ? total + store.g + store.m + store.s : total;
+  }, 0);
 
   const S = {
     wrap: { fontFamily: "'Segoe UI', system-ui, sans-serif", background: "#0f172a", minHeight: "100vh", color: "#e2e8f0", paddingBottom: 40 },
@@ -766,7 +789,7 @@ export default function App() {
           <div style={S.headerBrand}>
             <img src={LOGO_SRC} alt="EPI" style={S.logo} />
             <div style={{ minWidth: 0 }}>
-              <p style={{ ...S.sub, marginTop: 0 }}>Dashboard Performance & Reward 2026 | Total Target: Rp 634,4 M</p>
+              <p style={{ ...S.sub, marginTop: 0 }}>Dashboard Performance & Reward 2026 | Total Target Akses: {fmtS(accessibleTotalTarget)}</p>
               <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
                 <span style={{ fontSize: 10, fontWeight: 800, padding: "3px 10px", borderRadius: 99, background: "linear-gradient(135deg,#b8860b,#f5d78e)", color: "#1a1200" }}>GOLDGRAM</span>
                 <span style={{ fontSize: 10, fontWeight: 800, padding: "3px 10px", borderRadius: 99, background: "linear-gradient(135deg,#0f3d2e,#4a7a5e)", color: "#f5d78e" }}>MEEZAN GOLD</span>
@@ -794,6 +817,15 @@ export default function App() {
         {/* ============ INPUT TAB ============ */}
         {tab === "input" && session.role !== "viewer" && (
           <div>
+            {accessibleStoreCodes.length === 0 ? (
+              <div style={S.card}>
+                <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 8, color: "#d4af37" }}>Belum Ada Akses EPI Store</div>
+                <div style={{ fontSize: 12, color: "#94a3b8", lineHeight: 1.6 }}>
+                  Akun ini belum ditugaskan ke EPI Store mana pun. Hubungi admin untuk mengatur akses store pada PIN ini.
+                </div>
+              </div>
+            ) : (
+            <>
             <div style={S.card}>
               <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 10, color: "#d4af37" }}>Form Submit Realisasi Bulanan</div>
               <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 10 }}>
@@ -806,7 +838,7 @@ export default function App() {
                 <div>
                   <label style={S.label}>EPI Store</label>
                   <select style={S.select} value={fStore} onChange={e => setFStore(+e.target.value)}>
-                    {STORES.map((store, i) => <option key={i} value={i}>{store.n}</option>)}
+                    {accessibleStoreCodes.map((i) => <option key={i} value={i}>{STORES[i].n}</option>)}
                   </select>
                 </div>
                 <div>
@@ -864,9 +896,11 @@ export default function App() {
             </div>
             <div style={S.card}>
               <div style={{ fontSize: 12, color: "#94a3b8" }}>
-                Seluruh data EPIS dapat dibaca oleh semua pengguna. Anda dapat memilih semua EPI Store, tetapi hanya kolom brand yang ditugaskan kepada akun Anda yang dapat diubah.
+                Akun hanya dapat melihat dan submit EPI Store yang ditugaskan. Kolom brand yang bisa diubah mengikuti penugasan brand akun.
               </div>
             </div>
+            </>
+            )}
           </div>
         )}
 
@@ -958,7 +992,7 @@ export default function App() {
               </table>
             </div>
 
-            {STORES[3] && dSeg !== "GROWTH" && dSeg !== "START UP" && (
+            {accessibleStoreSet.has(3) && STORES[3] && dSeg !== "GROWTH" && dSeg !== "START UP" && (
               <div style={{ ...S.card, borderColor: "#92400e", background: "#1c1410" }}>
                 <div style={{ fontSize: 12, color: "#fbbf24", fontWeight: 700, marginBottom: 4 }}>📌 Catatan Evaluasi: EPIS Tasikmalaya</div>
                 <div style={{ fontSize: 12, color: "#cbd5e1", lineHeight: 1.6 }}>
@@ -974,10 +1008,17 @@ export default function App() {
         {/* ============ PER EPI STORE ============ */}
         {tab === "epis" && (
           <div>
+            {accessibleStoreCodes.length === 0 ? (
+              <div style={S.card}>
+                <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 8, color: "#d4af37" }}>Belum Ada Akses EPI Store</div>
+                <div style={{ fontSize: 12, color: "#94a3b8" }}>Akun ini belum ditugaskan ke EPI Store mana pun.</div>
+              </div>
+            ) : (
+            <>
             <div style={{ marginBottom: 12 }}>
               <label style={S.label}>Pilih EPI Store</label>
               <select style={S.select} value={pStore} onChange={e => setPStore(+e.target.value)}>
-                {STORES.map((s, i) => <option key={i} value={i}>{s.n} ({s.seg})</option>)}
+                {accessibleStoreCodes.map((i) => <option key={i} value={i}>{STORES[i].n} ({STORES[i].seg})</option>)}
               </select>
             </div>
 
@@ -1057,6 +1098,8 @@ export default function App() {
                 </tbody>
               </table>
             </div>
+            </>
+            )}
           </div>
         )}
 
@@ -1239,7 +1282,7 @@ export default function App() {
                   <tbody>
                     {Object.entries(data).sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true })).map(([k, d]) => {
                       const [si, mi] = k.split("-").map(Number);
-                      if (!STORES[si]) return null;
+                      if (!STORES[si] || !accessibleStoreSet.has(si)) return null;
                       return (
                         <tr key={k}>
                           <td style={{ ...S.td, fontWeight: 700 }}>{STORES[si].n}</td>
@@ -1288,6 +1331,19 @@ export default function App() {
                 </div>
                 <button style={{ ...S.btn, width: "auto", padding: "10px 16px" }} onClick={addUser}>Tambah</button>
               </div>
+              <div style={{ marginTop: 10 }}>
+                <label style={S.label}>Akses EPI Store</label>
+                <select
+                  multiple
+                  style={{ ...S.select, minHeight: 130 }}
+                  value={newUserStores.map(String)}
+                  disabled={newUserRole === "admin"}
+                  onChange={e => setNewUserStores(Array.from(e.target.selectedOptions, option => Number(option.value)))}
+                >
+                  {STORES.map((store, i) => <option key={i} value={i}>{store.n}</option>)}
+                </select>
+                <div style={{ marginTop: 6, fontSize: 11, color: "#94a3b8" }}>Tahan Ctrl/Shift untuk memilih lebih dari satu. Admin otomatis memiliki akses semua store.</div>
+              </div>
               {importMsg && <div style={{ marginTop: 8, fontSize: 13, fontWeight: 700, color: importMsg.ok ? "#4ade80" : "#f87171" }}>{importMsg.t}</div>}
             </div>
 
@@ -1295,8 +1351,8 @@ export default function App() {
               <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 8, color: "#d4af37" }}>Pengguna dan Otorisasi</div>
               <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 10 }}>PIN disimpan sebagai hash dan tidak dapat ditampilkan kembali. Isi kolom PIN baru hanya saat ingin menggantinya.</div>
               <div style={{ marginTop: 14 }}>
-                <table style={{ borderCollapse: "collapse", width: "100%", minWidth: 850 }}>
-                  <thead><tr>{["Nama", "Peran", "Brand", "Status", "PIN Baru", "Aksi"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
+                <table style={{ borderCollapse: "collapse", width: "100%", minWidth: 1100 }}>
+                  <thead><tr>{["Nama", "Peran", "Brand", "EPI Store", "Status", "PIN Baru", "Aksi"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
                   <tbody>
                     {users.map((user) => (
                       <tr key={user.id}>
@@ -1322,6 +1378,17 @@ export default function App() {
                           </select>
                         </td>
                         <td style={S.td}>
+                          <select
+                            multiple
+                            style={{ ...S.select, minWidth: 260, minHeight: 96 }}
+                            value={(user.storeCodes || []).map(String)}
+                            disabled={user.role === "admin"}
+                            onChange={e => updateUserField(user.id, "storeCodes", Array.from(e.target.selectedOptions, option => Number(option.value)))}
+                          >
+                            {STORES.map((store, i) => <option key={i} value={i}>{store.n}</option>)}
+                          </select>
+                        </td>
+                        <td style={S.td}>
                           <select style={{ ...S.select, minWidth: 110 }} value={user.isActive ? "1" : "0"} disabled={user.id === session.id} onChange={e => updateUserField(user.id, "isActive", e.target.value === "1")}>
                             <option value="1">Aktif</option>
                             <option value="0">Nonaktif</option>
@@ -1340,7 +1407,7 @@ export default function App() {
                         <td style={S.td}><button style={S.btnGhost} onClick={() => saveUser(user)}>Simpan</button></td>
                       </tr>
                     ))}
-                    {users.length === 0 && <tr><td colSpan={6} style={{ ...S.td, textAlign: "center", color: "#64748b" }}>Belum ada pengguna.</td></tr>}
+                    {users.length === 0 && <tr><td colSpan={7} style={{ ...S.td, textAlign: "center", color: "#64748b" }}>Belum ada pengguna.</td></tr>}
                   </tbody>
                 </table>
               </div>
@@ -1349,7 +1416,7 @@ export default function App() {
             <div style={S.card}>
               <div style={{ fontSize: 12, color: "#94a3b8", lineHeight: 1.6 }}>
                 Setiap submission mengambil identitas dari sesi server dan otomatis tercatat atas nama pengguna tersebut.
-                Brand Executive dapat memilih seluruh EPI Store, tetapi hanya dapat mengubah omzet brand yang ditugaskan kepadanya.
+                Brand Executive hanya dapat melihat dan submit EPI Store yang ditugaskan, serta hanya dapat mengubah omzet brand yang ditugaskan kepadanya.
               </div>
             </div>
           </div>
@@ -1416,12 +1483,14 @@ export default function App() {
             </div>
 
             <div style={S.card}>
-              <div style={{ fontWeight: 800, fontSize: 14, color: "#d4af37", marginBottom: 8 }}>Master Target 28 EPI Store (Total Rp 634,4 M)</div>
+              <div style={{ fontWeight: 800, fontSize: 14, color: "#d4af37", marginBottom: 8 }}>Master Target EPI Store Akses ({accessibleStoreCodes.length} Store)</div>
               <div style={{ overflowX: "auto" }}>
                 <table style={{ borderCollapse: "collapse", width: "100%" }}>
                   <thead><tr>{["EPI Store", "Seg", "Gold", "Meezan", "Silver", "Total"].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
                   <tbody>
-                    {STORES.map((s, i) => (
+                    {accessibleStoreCodes.map((i) => {
+                      const s = STORES[i];
+                      return (
                       <tr key={i}>
                         <td style={{ ...S.td, fontWeight: 700 }}>{s.n}</td>
                         <td style={{ ...S.td, fontSize: 10, color: "#94a3b8" }}>{s.seg}</td>
@@ -1430,7 +1499,7 @@ export default function App() {
                         <td style={S.td}>{fmtS(s.s)}</td>
                         <td style={{ ...S.td, fontWeight: 700 }}>{fmtS(s.g + s.m + s.s)}</td>
                       </tr>
-                    ))}
+                    )})}
                   </tbody>
                 </table>
               </div>

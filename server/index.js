@@ -93,6 +93,13 @@ const normalizeBrandCodes = (values) => (
   [...new Set((Array.isArray(values) ? values : []).map(String))]
     .filter((value) => allowedBrandCodes.includes(value))
 );
+const normalizeStoreCodes = (values) => (
+  [...new Set((Array.isArray(values) ? values : []).map(Number))]
+    .filter((value) => Number.isInteger(value) && value >= 0)
+);
+const canAccessStore = (user, storeIndex) => (
+  user.role === "admin" || user.storeCodes.includes(storeIndex)
+);
 
 async function writeAudit(connection, userId, action, entity, entityId, oldValue, newValue) {
   await connection.query(
@@ -162,7 +169,24 @@ app.post("/api/logout", (req, res, next) => {
 
 app.get("/api/bootstrap", requireAuth, async (req, res, next) => {
   try {
-    // Read access is global: every authenticated user receives every EPIS realisation.
+    // Admin receives all EPIS data; other roles only receive assigned stores.
+    const params = [];
+    let storeFilter = "";
+    if (req.user.role !== "admin") {
+      if (req.user.storeCodes.length === 0) {
+        return res.json({
+          data: {},
+          session: req.user,
+          access: {
+            canReadAllStores: false,
+            readableStoreCodes: [],
+            writableBrandCodes: req.user.role === "be" ? req.user.brandCodes : [],
+          },
+        });
+      }
+      storeFilter = ` AND s.store_code IN (${req.user.storeCodes.map(() => "?").join(",")})`;
+      params.push(...req.user.storeCodes);
+    }
     const [rows] = await pool.query(
       `SELECT
         s.store_code AS storeIndex,
@@ -175,8 +199,9 @@ app.get("/api/bootstrap", requireAuth, async (req, res, next) => {
         r.updated_at AS ts
        FROM realisations r
        JOIN stores s ON s.id = r.store_id
-       WHERE r.year = 2026
+       WHERE r.year = 2026${storeFilter}
        ORDER BY s.store_code, r.month_index`,
+      params,
     );
     const data = Object.fromEntries(
       rows.map((row) => [
@@ -188,7 +213,8 @@ app.get("/api/bootstrap", requireAuth, async (req, res, next) => {
       data,
       session: req.user,
       access: {
-        canReadAllStores: true,
+        canReadAllStores: req.user.role === "admin",
+        readableStoreCodes: req.user.role === "admin" ? null : req.user.storeCodes,
         writableBrandCodes: req.user.role === "admin"
           ? allowedBrandCodes
           : req.user.brandCodes,
@@ -220,6 +246,9 @@ app.put("/api/realisations/:storeIndex/:monthIndex", requireAuth, requireWriter,
   }
   if (req.user.role !== "admin" && req.user.brandCodes.length === 0) {
     return res.status(403).json({ message: "Belum ada brand yang ditugaskan ke akun Anda." });
+  }
+  if (!canAccessStore(req.user, storeIndex)) {
+    return res.status(403).json({ message: "Akun ini tidak memiliki akses ke EPI Store tersebut." });
   }
 
   const connection = await pool.getConnection();
@@ -376,9 +405,11 @@ app.get("/api/users", requireAuth, requireAdmin, async (_req, res, next) => {
         u.name,
         u.role,
         u.is_active AS isActive,
-        GROUP_CONCAT(ub.brand_code ORDER BY ub.brand_code) AS brandCodes
+        GROUP_CONCAT(DISTINCT ub.brand_code ORDER BY ub.brand_code) AS brandCodes,
+        GROUP_CONCAT(DISTINCT us.store_code ORDER BY us.store_code) AS storeCodes
        FROM users u
        LEFT JOIN user_brands ub ON ub.user_id = u.id
+       LEFT JOIN user_stores us ON us.user_id = u.id
        GROUP BY u.id
        ORDER BY u.role, u.name`,
     );
@@ -387,6 +418,9 @@ app.get("/api/users", requireAuth, requireAdmin, async (_req, res, next) => {
         ...user,
         brandCodes: user.brandCodes
           ? String(user.brandCodes).split(",")
+          : [],
+        storeCodes: user.storeCodes
+          ? String(user.storeCodes).split(",").map(Number)
           : [],
       })),
     });
@@ -400,6 +434,7 @@ app.post("/api/users", requireAuth, requireAdmin, async (req, res, next) => {
   const pin = String(req.body.pin || "").trim();
   const role = ["admin", "be", "viewer"].includes(req.body.role) ? req.body.role : "be";
   const brandCodes = normalizeBrandCodes(req.body.brandCodes);
+  const storeCodes = normalizeStoreCodes(req.body.storeCodes);
 
   if (!name || !isValidPin(pin)) {
     return res.status(400).json({ message: "Nama dan PIN 4-6 digit wajib diisi." });
@@ -426,6 +461,12 @@ app.post("/api/users", requireAuth, requireAdmin, async (req, res, next) => {
         [brandCodes.map((brandCode) => [result.insertId, brandCode])],
       );
     }
+    if (role !== "admin" && storeCodes.length > 0) {
+      await connection.query(
+        `INSERT INTO user_stores (user_id, store_code) VALUES ?`,
+        [storeCodes.map((storeCode) => [result.insertId, storeCode])],
+      );
+    }
     await writeAudit(
       connection,
       req.user.id,
@@ -433,7 +474,7 @@ app.post("/api/users", requireAuth, requireAdmin, async (req, res, next) => {
       "user",
       result.insertId,
       null,
-      { name, role, brandCodes },
+      { name, role, brandCodes, storeCodes },
     );
     await connection.commit();
     res.status(201).json({ id: result.insertId });
@@ -452,6 +493,7 @@ app.patch("/api/users/:id", requireAuth, requireAdmin, async (req, res, next) =>
   const role = ["admin", "be", "viewer"].includes(req.body.role) ? req.body.role : "be";
   const isActive = req.body.isActive !== false;
   const brandCodes = normalizeBrandCodes(req.body.brandCodes);
+  const storeCodes = normalizeStoreCodes(req.body.storeCodes);
 
   if (!Number.isInteger(userId) || !name || (pin && !isValidPin(pin))) {
     return res.status(400).json({ message: "Data pengguna tidak valid." });
@@ -501,6 +543,13 @@ app.patch("/api/users/:id", requireAuth, requireAdmin, async (req, res, next) =>
         [brandCodes.map((brandCode) => [userId, brandCode])],
       );
     }
+    await connection.query("DELETE FROM user_stores WHERE user_id = ?", [userId]);
+    if (role !== "admin" && storeCodes.length > 0) {
+      await connection.query(
+        `INSERT INTO user_stores (user_id, store_code) VALUES ?`,
+        [storeCodes.map((storeCode) => [userId, storeCode])],
+      );
+    }
     await writeAudit(
       connection,
       req.user.id,
@@ -508,7 +557,7 @@ app.patch("/api/users/:id", requireAuth, requireAdmin, async (req, res, next) =>
       "user",
       userId,
       oldUser,
-      { name, role, isActive, brandCodes, pinChanged: Boolean(pin) },
+      { name, role, isActive, brandCodes, storeCodes, pinChanged: Boolean(pin) },
     );
     await connection.commit();
     res.json({ ok: true });

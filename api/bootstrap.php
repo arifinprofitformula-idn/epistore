@@ -179,6 +179,33 @@ function ensure_user_stores_schema(): void
              FOREIGN KEY (store_code) REFERENCES stores(store_code) ON DELETE CASCADE
          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
     );
+    $columns = db()->prepare(
+        "SELECT COLUMN_NAME
+         FROM INFORMATION_SCHEMA.COLUMNS
+         WHERE TABLE_SCHEMA = DATABASE()
+           AND TABLE_NAME = 'user_stores'"
+    );
+    $columns->execute();
+    $columnNames = $columns->fetchAll(PDO::FETCH_COLUMN);
+    if (!in_array('store_code', $columnNames, true)) {
+        db()->exec(
+            "ALTER TABLE user_stores
+             ADD COLUMN store_code SMALLINT UNSIGNED NULL AFTER user_id"
+        );
+        if (in_array('store_id', $columnNames, true)) {
+            db()->exec(
+                "UPDATE user_stores us
+                 JOIN stores s ON s.id = us.store_id
+                 SET us.store_code = s.store_code
+                 WHERE us.store_code IS NULL"
+            );
+        }
+        db()->exec('DELETE FROM user_stores WHERE store_code IS NULL');
+        db()->exec(
+            "ALTER TABLE user_stores
+             MODIFY store_code SMALLINT UNSIGNED NOT NULL"
+        );
+    }
     db()->exec(
         "INSERT IGNORE INTO user_stores (user_id, store_code)
          SELECT u.id, s.store_code

@@ -113,6 +113,15 @@ function session_user(bool $required = true): ?array
          ORDER BY brand_code'
     );
     $brands->execute([$userId]);
+    $user['id'] = (int) $user['id'];
+    $user['isActive'] = (bool) $user['isActive'];
+    $user['brandCodes'] = $brands->fetchAll(PDO::FETCH_COLUMN);
+    $user['canReadAllStores'] = $user['role'] === 'admin';
+    if ($user['role'] === 'admin') {
+        $user['storeCodes'] = [];
+        return $user;
+    }
+
     ensure_user_stores_schema();
     $stores = db()->prepare(
         'SELECT store_code
@@ -121,11 +130,7 @@ function session_user(bool $required = true): ?array
          ORDER BY store_code'
     );
     $stores->execute([$userId]);
-    $user['id'] = (int) $user['id'];
-    $user['isActive'] = (bool) $user['isActive'];
-    $user['brandCodes'] = $brands->fetchAll(PDO::FETCH_COLUMN);
     $user['storeCodes'] = array_map('intval', $stores->fetchAll(PDO::FETCH_COLUMN));
-    $user['canReadAllStores'] = $user['role'] === 'admin';
     return $user;
 }
 

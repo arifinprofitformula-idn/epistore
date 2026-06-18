@@ -434,6 +434,7 @@ function import_realisations(array $user): never
 
 function list_users(): never
 {
+    ensure_user_stores_schema();
     $rows = db()->query(
         'SELECT
            u.id,
@@ -481,6 +482,7 @@ function assert_unique_pin(PDO $pdo, string $pin, ?int $exceptUserId = null): vo
 function create_user(array $admin): never
 {
     ensure_user_roles_schema();
+    ensure_user_stores_schema();
     $body = request_body();
     $name = mb_substr(trim((string) ($body['name'] ?? '')), 0, 120);
     $pin = trim((string) ($body['pin'] ?? ''));
@@ -519,6 +521,7 @@ function create_user(array $admin): never
 function update_user(array $admin, int $userId): never
 {
     ensure_user_roles_schema();
+    ensure_user_stores_schema();
     $body = request_body();
     $name = mb_substr(trim((string) ($body['name'] ?? '')), 0, 120);
     $pin = trim((string) ($body['pin'] ?? ''));

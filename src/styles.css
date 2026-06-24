@@ -42,6 +42,165 @@ textarea:focus-visible {
   flex: 0 0 auto;
 }
 
+.login-button::before {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background: linear-gradient(110deg, transparent 0%, rgba(255, 255, 255, 0.48) 45%, transparent 62%);
+  transform: translateX(-120%) skewX(-18deg);
+  animation: button-shimmer 3s ease-in-out infinite;
+}
+
+.login-button > span {
+  position: relative;
+  z-index: 1;
+}
+
+.login-button:hover {
+  filter: brightness(1.04);
+  box-shadow: 0 12px 30px rgba(212, 175, 55, 0.28);
+}
+
+.login-button-icon {
+  display: inline-block;
+  font-size: 17px;
+  line-height: 1;
+  animation: unlock-nudge 2.4s ease-in-out infinite;
+}
+
+.credit-footer {
+  position: relative;
+  isolation: isolate;
+}
+
+.credit-footer::before {
+  position: absolute;
+  left: 50%;
+  top: -2px;
+  z-index: -1;
+  width: min(260px, 78vw);
+  height: 1px;
+  content: "";
+  background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.18), rgba(248, 113, 113, 0.42), rgba(248, 231, 164, 0.32), transparent);
+  transform: translateX(-50%);
+  animation: credit-kinetic-line 4.2s ease-in-out infinite;
+}
+
+.credit-footer::after {
+  position: absolute;
+  left: 50%;
+  top: 10px;
+  z-index: -1;
+  width: min(190px, 66vw);
+  height: 22px;
+  content: "";
+  background: radial-gradient(ellipse at center, rgba(212, 175, 55, 0.12), transparent 68%);
+  transform: translateX(-50%);
+  filter: blur(8px);
+  animation: credit-ambient-glow 4.2s ease-in-out infinite;
+}
+
+.credit-link {
+  background: linear-gradient(90deg, #d4af37, #f8e7a4, #d4af37);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent !important;
+  text-shadow: 0 0 16px rgba(212, 175, 55, 0.18);
+  transition: text-shadow 160ms ease, filter 160ms ease;
+  animation: credit-shine 4.8s ease-in-out infinite;
+}
+
+.credit-link:hover {
+  filter: brightness(1.12);
+  text-shadow: 0 0 20px rgba(248, 231, 164, 0.3);
+}
+
+.credit-love {
+  display: inline-block;
+  text-shadow: 0 0 14px rgba(248, 113, 113, 0.35);
+  animation: credit-heartbeat 1.9s ease-in-out infinite;
+}
+
+@keyframes button-shimmer {
+  0%,
+  38% {
+    transform: translateX(-120%) skewX(-18deg);
+  }
+
+  68%,
+  100% {
+    transform: translateX(120%) skewX(-18deg);
+  }
+}
+
+@keyframes unlock-nudge {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+
+  18% {
+    transform: translateY(-1px) rotate(-8deg);
+  }
+
+  32% {
+    transform: translateY(0) rotate(0deg);
+  }
+}
+
+@keyframes credit-kinetic-line {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: translateX(-50%) scaleX(0.72);
+  }
+
+  50% {
+    opacity: 1;
+    transform: translateX(-50%) scaleX(1);
+  }
+}
+
+@keyframes credit-ambient-glow {
+  0%,
+  100% {
+    opacity: 0.28;
+    transform: translateX(-50%) translateY(2px) scaleX(0.82);
+  }
+
+  50% {
+    opacity: 0.72;
+    transform: translateX(-50%) translateY(0) scaleX(1);
+  }
+}
+
+@keyframes credit-shine {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes credit-heartbeat {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  18% {
+    transform: scale(1.18);
+  }
+
+  32% {
+    transform: scale(1);
+  }
+}
+
 @media (max-width: 767px) {
   .app-tabs-shell {
     overflow: hidden;

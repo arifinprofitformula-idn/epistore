@@ -732,7 +732,11 @@ export default function App() {
     input: { width: "100%", boxSizing: "border-box", padding: "10px 12px", borderRadius: 8, border: "1px solid #475569", background: "#0f172a", color: "#fff", fontSize: 14 },
     select: { width: "100%", boxSizing: "border-box", padding: "10px 12px", borderRadius: 8, border: "1px solid #475569", background: "#0f172a", color: "#fff", fontSize: 14 },
     btn: { width: "100%", padding: "12px", borderRadius: 10, border: "none", background: "#d4af37", color: "#0f172a", fontWeight: 800, fontSize: 15, cursor: "pointer" },
+    loginBtn: { width: "100%", padding: "12px", borderRadius: 10, border: "none", background: "linear-gradient(135deg,#d4af37,#f8e7a4,#d4af37)", color: "#0f172a", fontWeight: 800, fontSize: 15, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, position: "relative", overflow: "hidden", boxShadow: "0 10px 24px rgba(212, 175, 55, 0.18)" },
     btnGhost: { padding: "8px 12px", borderRadius: 8, border: "1px solid #475569", background: "transparent", color: "#cbd5e1", fontWeight: 700, fontSize: 12, cursor: "pointer" },
+    loginCredit: { width: "100%", padding: "12px 0 0", fontSize: 11, color: "#94a3b8", textAlign: "center", lineHeight: 1.6 },
+    loginCreditLink: { color: "#d4af37", fontWeight: 800, textDecoration: "none" },
+    loveIcon: { color: "#f87171", fontSize: 12, margin: "0 3px", verticalAlign: "-1px" },
     th: { padding: "8px 8px", fontSize: 11, textAlign: "left", color: "#94a3b8", borderBottom: "1px solid #334155", whiteSpace: "nowrap" },
     td: { padding: "8px 8px", fontSize: 12, borderBottom: "1px solid #283548", whiteSpace: "nowrap" },
     kpi: { background: "#1e293b", borderRadius: 12, padding: "12px 14px", border: "1px solid #334155", flex: "1 1 140px", minWidth: 140 },
@@ -745,33 +749,52 @@ export default function App() {
   // ============ LOGIN SCREEN ============
   if (!session) {
     return (
-      <div style={{ ...S.wrap, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-        <div style={{ ...S.card, maxWidth: 360, width: "100%" }}>
-          <div style={{ textAlign: "center", marginBottom: 16 }}>
-            <img src={LOGO_SRC} alt="EPI" style={S.loginLogo} />
-            <div style={{ fontWeight: 800, fontSize: 17, color: "#fff" }}>Dashboard EPI Store 2026</div>
-            <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>Masukkan PIN Anda untuk masuk</div>
-          </div>
-          <input
-            style={{ ...S.input, textAlign: "center", fontSize: 22, letterSpacing: 6, fontWeight: 800 }}
-            type="password"
-            inputMode="numeric"
-            autoComplete="current-password"
-            maxLength={6}
-            placeholder="••••"
-            value={pinInput}
-            onChange={e => { setPinInput(e.target.value.replace(/[^\d]/g, "")); setLoginErr(""); }}
-            onKeyDown={e => e.key === "Enter" && doLogin()}
-          />
-          {loginErr && <div style={{ color: "#f87171", fontSize: 12, marginTop: 8, textAlign: "center" }}>{loginErr}</div>}
-          <div style={{ marginTop: 14 }}>
-            <button style={S.btn} onClick={doLogin}>Masuk</button>
-          </div>
-          <div style={{ marginTop: 14, fontSize: 11, color: "#64748b", textAlign: "center", lineHeight: 1.6 }}>
-            Gunakan PIN akun yang diberikan administrator.<br />
-            Akun awal hanya dibuat saat database pertama kali diinisialisasi.
+      <div style={{ ...S.wrap, display: "flex", flexDirection: "column", justifyContent: "space-between", padding: 20 }}>
+        <div aria-hidden="true" />
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%" }}>
+          <div style={{ ...S.card, maxWidth: 360, width: "100%" }}>
+            <div style={{ textAlign: "center", marginBottom: 16 }}>
+              <img src={LOGO_SRC} alt="EPI" style={S.loginLogo} />
+              <div style={{ fontWeight: 800, fontSize: 17, color: "#fff" }}>Dashboard EPI Store 2026</div>
+              <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>Masukkan PIN Anda untuk masuk</div>
+            </div>
+            <input
+              style={{ ...S.input, textAlign: "center", fontSize: 22, letterSpacing: 6, fontWeight: 800 }}
+              type="password"
+              inputMode="numeric"
+              autoComplete="current-password"
+              maxLength={6}
+              placeholder="••••"
+              value={pinInput}
+              onChange={e => { setPinInput(e.target.value.replace(/[^\d]/g, "")); setLoginErr(""); }}
+              onKeyDown={e => e.key === "Enter" && doLogin()}
+            />
+            {loginErr && <div style={{ color: "#f87171", fontSize: 12, marginTop: 8, textAlign: "center" }}>{loginErr}</div>}
+            <div style={{ marginTop: 14 }}>
+              <button className="login-button" style={S.loginBtn} onClick={doLogin}>
+                <span className="login-button-icon" aria-hidden="true">🔓</span>
+                <span>AKSES DASHBOARD</span>
+              </button>
+            </div>
+            <div style={{ marginTop: 14, fontSize: 11, color: "#64748b", textAlign: "center", lineHeight: 1.6 }}>
+              Gunakan PIN akun yang diberikan administrator.<br />
+            </div>
           </div>
         </div>
+        <footer className="credit-footer" style={S.loginCredit}>
+          Made with love
+          <span className="credit-love" style={S.loveIcon} aria-label="love" role="img">♥</span>
+          by{" "}
+          <a
+            className="credit-link"
+            href="https://arvadigital.web.id/"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={S.loginCreditLink}
+          >
+            Arva Digital Media
+          </a>
+        </footer>
       </div>
     );
   }
@@ -825,81 +848,81 @@ export default function App() {
                 </div>
               </div>
             ) : (
-            <>
-            <div style={S.card}>
-              <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 10, color: "#d4af37" }}>Form Submit Realisasi Bulanan</div>
-              <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 10 }}>
-                Login sebagai: <b style={{ color: "#e2e8f0" }}>{session.name}</b>
-                {session.role === "be" && (
-                  <span> | Brand: <b style={{ color: "#d4af37" }}>{BRANDS.filter(brand => assignedBrandCodes.includes(brand.code)).map(brand => brand.name).join(", ") || "Belum ditugaskan"}</b></span>
-                )}
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
-                <div>
-                  <label style={S.label}>EPI Store</label>
-                  <select style={S.select} value={fStore} onChange={e => setFStore(+e.target.value)}>
-                    {accessibleStoreCodes.map((i) => <option key={i} value={i}>{STORES[i].n}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label style={S.label}>Bulan</label>
-                  <select style={S.select} value={fMonth} onChange={e => setFMonth(+e.target.value)}>
-                    {MONTHS.map((m, i) => <option key={i} value={i}>{m} — bobot {pctWeight(WEIGHTS[i])} ({SEASON[i]} Season)</option>)}
-                  </select>
-                </div>
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 10 }}>
-                {[
-                  ["GOLDGRAM", fG, setFG, inputPreview.tg, "#1a1200", "linear-gradient(135deg,#b8860b,#f5d78e)"],
-                  ["MEEZAN GOLD", fM, setFM, inputPreview.tm, "#f5d78e", "linear-gradient(135deg,#0f3d2e,#4a7a5e)"],
-                  ["SILVERGRAM", fS, setFS, inputPreview.ts, "#0f172a", "linear-gradient(135deg,#94a3b8,#e2e8f0)"],
-                ].map(([name, val, set, tgt, txtCol, bgGrad]) => {
-                  const brand = BRANDS.find((item) => item.name === name);
-                  const editable = canEditBrand(brand.code);
-                  return (
-                    <div key={name}>
-                      <label style={S.label}>
-                        <span style={{ fontSize: 10, fontWeight: 800, padding: "2px 8px", borderRadius: 99, background: bgGrad, color: txtCol, marginRight: 6 }}>{name}</span>
-                        Target bulan ini: {fmtS(tgt)}
-                        {!editable && <span style={{ color: "#64748b", marginLeft: 6 }}>(hanya baca)</span>}
-                      </label>
-                      <input style={{ ...S.input, opacity: editable ? 1 : 0.55 }} disabled={!editable} inputMode="numeric" placeholder="Realisasi omzet (Rp)" value={val}
-                        onChange={e => set(fmtInput(e.target.value))} />
+              <>
+                <div style={S.card}>
+                  <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 10, color: "#d4af37" }}>Form Submit Realisasi Bulanan</div>
+                  <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 10 }}>
+                    Login sebagai: <b style={{ color: "#e2e8f0" }}>{session.name}</b>
+                    {session.role === "be" && (
+                      <span> | Brand: <b style={{ color: "#d4af37" }}>{BRANDS.filter(brand => assignedBrandCodes.includes(brand.code)).map(brand => brand.name).join(", ") || "Belum ditugaskan"}</b></span>
+                    )}
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+                    <div>
+                      <label style={S.label}>EPI Store</label>
+                      <select style={S.select} value={fStore} onChange={e => setFStore(+e.target.value)}>
+                        {accessibleStoreCodes.map((i) => <option key={i} value={i}>{STORES[i].n}</option>)}
+                      </select>
                     </div>
-                  );
-                })}
-                <div>
-                  <label style={S.label}>Catatan (opsional)</label>
-                  <input style={S.input} placeholder="Catatan" value={fNote} onChange={e => setFNote(e.target.value)} />
-                </div>
-              </div>
+                    <div>
+                      <label style={S.label}>Bulan</label>
+                      <select style={S.select} value={fMonth} onChange={e => setFMonth(+e.target.value)}>
+                        {MONTHS.map((m, i) => <option key={i} value={i}>{m} — bobot {pctWeight(WEIGHTS[i])} ({SEASON[i]} Season)</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 10 }}>
+                    {[
+                      ["GOLDGRAM", fG, setFG, inputPreview.tg, "#1a1200", "linear-gradient(135deg,#b8860b,#f5d78e)"],
+                      ["MEEZAN GOLD", fM, setFM, inputPreview.tm, "#f5d78e", "linear-gradient(135deg,#0f3d2e,#4a7a5e)"],
+                      ["SILVERGRAM", fS, setFS, inputPreview.ts, "#0f172a", "linear-gradient(135deg,#94a3b8,#e2e8f0)"],
+                    ].map(([name, val, set, tgt, txtCol, bgGrad]) => {
+                      const brand = BRANDS.find((item) => item.name === name);
+                      const editable = canEditBrand(brand.code);
+                      return (
+                        <div key={name}>
+                          <label style={S.label}>
+                            <span style={{ fontSize: 10, fontWeight: 800, padding: "2px 8px", borderRadius: 99, background: bgGrad, color: txtCol, marginRight: 6 }}>{name}</span>
+                            Target bulan ini: {fmtS(tgt)}
+                            {!editable && <span style={{ color: "#64748b", marginLeft: 6 }}>(hanya baca)</span>}
+                          </label>
+                          <input style={{ ...S.input, opacity: editable ? 1 : 0.55 }} disabled={!editable} inputMode="numeric" placeholder="Realisasi omzet (Rp)" value={val}
+                            onChange={e => set(fmtInput(e.target.value))} />
+                        </div>
+                      );
+                    })}
+                    <div>
+                      <label style={S.label}>Catatan (opsional)</label>
+                      <input style={S.input} placeholder="Catatan" value={fNote} onChange={e => setFNote(e.target.value)} />
+                    </div>
+                  </div>
 
-              <div style={{ marginTop: 12, padding: 12, borderRadius: 10, background: "#0f172a", border: "1px solid #334155" }}>
-                <div style={{ fontSize: 12, color: "#94a3b8", fontWeight: 700, marginBottom: 6 }}>PREVIEW OTOMATIS</div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 14, fontSize: 13 }}>
-                  <div>Ach Total: <b style={{ color: inputPreview.ach >= 100 ? "#4ade80" : inputPreview.ach >= 75 ? "#60a5fa" : "#f87171" }}>{pct(inputPreview.ach)}</b></div>
-                  <div>Emas ({fmtS(inputPreview.g + inputPreview.m)}): <b style={{ color: "#fbbf24" }}>{inputPreview.emasTier.name}</b> → {fmt(inputPreview.emasTier.reward)}</div>
-                  <div>Perak ({fmtS(inputPreview.s)}): <b style={{ color: "#cbd5e1" }}>{inputPreview.perakTier.name}</b> → {fmt(inputPreview.perakTier.reward)}</div>
-                  <div>Budget Reward: <b style={{ color: "#d4af37" }}>{fmt(inputPreview.totalReward)}</b></div>
-                  <div>Cair Bulanan 70%: <b style={{ color: "#4ade80" }}>{fmt(inputPreview.monthlyReward)}</b></div>
-                  <div>Pool Q/Annual: <b style={{ color: "#93c5fd" }}>{fmt(inputPreview.quarterlyPool)} / {fmt(inputPreview.annualPool)}</b></div>
-                </div>
-                {warn && <div style={{ marginTop: 8, fontSize: 12, color: "#fb923c" }}>⚠️ Realisasi &gt;5× target bulanan — pastikan satuan Rupiah penuh (bukan ribuan/jutaan).</div>}
-              </div>
+                  <div style={{ marginTop: 12, padding: 12, borderRadius: 10, background: "#0f172a", border: "1px solid #334155" }}>
+                    <div style={{ fontSize: 12, color: "#94a3b8", fontWeight: 700, marginBottom: 6 }}>PREVIEW OTOMATIS</div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 14, fontSize: 13 }}>
+                      <div>Ach Total: <b style={{ color: inputPreview.ach >= 100 ? "#4ade80" : inputPreview.ach >= 75 ? "#60a5fa" : "#f87171" }}>{pct(inputPreview.ach)}</b></div>
+                      <div>Emas ({fmtS(inputPreview.g + inputPreview.m)}): <b style={{ color: "#fbbf24" }}>{inputPreview.emasTier.name}</b> → {fmt(inputPreview.emasTier.reward)}</div>
+                      <div>Perak ({fmtS(inputPreview.s)}): <b style={{ color: "#cbd5e1" }}>{inputPreview.perakTier.name}</b> → {fmt(inputPreview.perakTier.reward)}</div>
+                      <div>Budget Reward: <b style={{ color: "#d4af37" }}>{fmt(inputPreview.totalReward)}</b></div>
+                      <div>Cair Bulanan 70%: <b style={{ color: "#4ade80" }}>{fmt(inputPreview.monthlyReward)}</b></div>
+                      <div>Pool Q/Annual: <b style={{ color: "#93c5fd" }}>{fmt(inputPreview.quarterlyPool)} / {fmt(inputPreview.annualPool)}</b></div>
+                    </div>
+                    {warn && <div style={{ marginTop: 8, fontSize: 12, color: "#fb923c" }}>⚠️ Realisasi &gt;5× target bulanan — pastikan satuan Rupiah penuh (bukan ribuan/jutaan).</div>}
+                  </div>
 
-              <div style={{ marginTop: 12 }}>
-                <button style={{ ...S.btn, opacity: saving || assignedBrandCodes.length === 0 ? 0.6 : 1 }} disabled={saving || assignedBrandCodes.length === 0} onClick={save}>
-                  {saving ? "Menyimpan…" : "💾 Submit Realisasi"}
-                </button>
-                {msg && <div style={{ marginTop: 8, fontSize: 13, fontWeight: 700, color: msg.ok ? "#4ade80" : "#f87171", textAlign: "center" }}>{msg.t}</div>}
-              </div>
-            </div>
-            <div style={S.card}>
-              <div style={{ fontSize: 12, color: "#94a3b8" }}>
-                Akun hanya dapat melihat dan submit EPI Store yang ditugaskan. Kolom brand yang bisa diubah mengikuti penugasan brand akun.
-              </div>
-            </div>
-            </>
+                  <div style={{ marginTop: 12 }}>
+                    <button style={{ ...S.btn, opacity: saving || assignedBrandCodes.length === 0 ? 0.6 : 1 }} disabled={saving || assignedBrandCodes.length === 0} onClick={save}>
+                      {saving ? "Menyimpan…" : "💾 Submit Realisasi"}
+                    </button>
+                    {msg && <div style={{ marginTop: 8, fontSize: 13, fontWeight: 700, color: msg.ok ? "#4ade80" : "#f87171", textAlign: "center" }}>{msg.t}</div>}
+                  </div>
+                </div>
+                <div style={S.card}>
+                  <div style={{ fontSize: 12, color: "#94a3b8" }}>
+                    Akun hanya dapat melihat dan submit EPI Store yang ditugaskan. Kolom brand yang bisa diubah mengikuti penugasan brand akun.
+                  </div>
+                </div>
+              </>
             )}
           </div>
         )}
@@ -1014,91 +1037,91 @@ export default function App() {
                 <div style={{ fontSize: 12, color: "#94a3b8" }}>Akun ini belum ditugaskan ke EPI Store mana pun.</div>
               </div>
             ) : (
-            <>
-            <div style={{ marginBottom: 12 }}>
-              <label style={S.label}>Pilih EPI Store</label>
-              <select style={S.select} value={pStore} onChange={e => setPStore(+e.target.value)}>
-                {accessibleStoreCodes.map((i) => <option key={i} value={i}>{STORES[i].n} ({STORES[i].seg})</option>)}
-              </select>
-            </div>
+              <>
+                <div style={{ marginBottom: 12 }}>
+                  <label style={S.label}>Pilih EPI Store</label>
+                  <select style={S.select} value={pStore} onChange={e => setPStore(+e.target.value)}>
+                    {accessibleStoreCodes.map((i) => <option key={i} value={i}>{STORES[i].n} ({STORES[i].seg})</option>)}
+                  </select>
+                </div>
 
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
-              <div style={S.kpi}><div style={S.label}>Target Tahun</div><div style={S.kpiV}>{fmtS(episYr.t)}</div></div>
-              <div style={S.kpi}><div style={S.label}>Realisasi Tahun</div><div style={S.kpiV}>{fmtS(episYr.r)}</div></div>
-              <div style={S.kpi}><div style={S.label}>Ach Tahun</div><div style={{ ...S.kpiV, color: episYr.ach >= 100 ? "#4ade80" : episYr.ach >= 75 ? "#60a5fa" : "#f87171" }}>{pct(episYr.ach)}</div></div>
-              <div style={S.kpi}><div style={S.label}>Budget Reward Tahun</div><div style={{ ...S.kpiV, color: "#d4af37" }}>{fmt(episYr.rw)}</div><div style={{ fontSize: 11, color: "#94a3b8" }}>Cair bulanan: {fmtS(episYr.monthly)}</div></div>
-              <div style={S.kpi}><div style={S.label}>Pool Q / Annual</div><div style={{ ...S.kpiV, color: "#93c5fd" }}>{fmtS(episYr.quarterly)} / {fmtS(episYr.annual)}</div><div style={{ fontSize: 11, color: "#94a3b8" }}>Estimasi annual cair: {fmtS(episYr.annualPayout)}</div></div>
-            </div>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
+                  <div style={S.kpi}><div style={S.label}>Target Tahun</div><div style={S.kpiV}>{fmtS(episYr.t)}</div></div>
+                  <div style={S.kpi}><div style={S.label}>Realisasi Tahun</div><div style={S.kpiV}>{fmtS(episYr.r)}</div></div>
+                  <div style={S.kpi}><div style={S.label}>Ach Tahun</div><div style={{ ...S.kpiV, color: episYr.ach >= 100 ? "#4ade80" : episYr.ach >= 75 ? "#60a5fa" : "#f87171" }}>{pct(episYr.ach)}</div></div>
+                  <div style={S.kpi}><div style={S.label}>Budget Reward Tahun</div><div style={{ ...S.kpiV, color: "#d4af37" }}>{fmt(episYr.rw)}</div><div style={{ fontSize: 11, color: "#94a3b8" }}>Cair bulanan: {fmtS(episYr.monthly)}</div></div>
+                  <div style={S.kpi}><div style={S.label}>Pool Q / Annual</div><div style={{ ...S.kpiV, color: "#93c5fd" }}>{fmtS(episYr.quarterly)} / {fmtS(episYr.annual)}</div><div style={{ fontSize: 11, color: "#94a3b8" }}>Estimasi annual cair: {fmtS(episYr.annualPayout)}</div></div>
+                </div>
 
-            <div style={{ ...S.card, padding: 12 }}>
-              <div style={{ fontSize: 14, fontWeight: 800, color: "#e2e8f0", marginBottom: 4 }}>
-                Pencapaian Omzet per Brand
-              </div>
-              <div style={{ fontSize: 11, color: "#94a3b8", marginBottom: 10 }}>
-                {STORES[pStore].n} — akumulasi realisasi yang telah tercatat dibanding target tahunan
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(230px,1fr))", gap: 10 }}>
-                {episBrandKPI.map((brand) => {
-                  const positive = brand.gap >= 0;
-                  const progress = Math.min(Math.max(brand.achievement, 0), 100);
-                  return (
-                    <div key={brand.code} style={{ background: "#0f172a", border: "1px solid #334155", borderRadius: 10, padding: 12 }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                        <span style={{ fontSize: 10, fontWeight: 800, padding: "3px 9px", borderRadius: 99, background: brand.gradient, color: brand.code === "goldgram" ? "#1a1200" : brand.code === "silvergram" ? "#0f172a" : "#f5d78e" }}>{brand.name}</span>
-                        <span style={{ fontSize: 16, fontWeight: 800, color: brand.achievement >= 100 ? "#4ade80" : brand.achievement >= 75 ? "#60a5fa" : "#f87171" }}>{pct(brand.achievement)}</span>
-                      </div>
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
-                        <div>
-                          <div style={{ fontSize: 10, color: "#64748b", marginBottom: 2 }}>TARGET TAHUN</div>
-                          <div style={{ fontSize: 14, fontWeight: 700 }}>{fmtS(brand.target)}</div>
+                <div style={{ ...S.card, padding: 12 }}>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: "#e2e8f0", marginBottom: 4 }}>
+                    Pencapaian Omzet per Brand
+                  </div>
+                  <div style={{ fontSize: 11, color: "#94a3b8", marginBottom: 10 }}>
+                    {STORES[pStore].n} — akumulasi realisasi yang telah tercatat dibanding target tahunan
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(230px,1fr))", gap: 10 }}>
+                    {episBrandKPI.map((brand) => {
+                      const positive = brand.gap >= 0;
+                      const progress = Math.min(Math.max(brand.achievement, 0), 100);
+                      return (
+                        <div key={brand.code} style={{ background: "#0f172a", border: "1px solid #334155", borderRadius: 10, padding: 12 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                            <span style={{ fontSize: 10, fontWeight: 800, padding: "3px 9px", borderRadius: 99, background: brand.gradient, color: brand.code === "goldgram" ? "#1a1200" : brand.code === "silvergram" ? "#0f172a" : "#f5d78e" }}>{brand.name}</span>
+                            <span style={{ fontSize: 16, fontWeight: 800, color: brand.achievement >= 100 ? "#4ade80" : brand.achievement >= 75 ? "#60a5fa" : "#f87171" }}>{pct(brand.achievement)}</span>
+                          </div>
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
+                            <div>
+                              <div style={{ fontSize: 10, color: "#64748b", marginBottom: 2 }}>TARGET TAHUN</div>
+                              <div style={{ fontSize: 14, fontWeight: 700 }}>{fmtS(brand.target)}</div>
+                            </div>
+                            <div>
+                              <div style={{ fontSize: 10, color: "#64748b", marginBottom: 2 }}>REALISASI OMZET</div>
+                              <div style={{ fontSize: 14, fontWeight: 800, color: brand.color }}>{fmtS(brand.real)}</div>
+                            </div>
+                          </div>
+                          <div style={{ height: 7, borderRadius: 99, background: "#1e293b", overflow: "hidden", marginBottom: 8 }}>
+                            <div style={{ height: "100%", width: `${progress}%`, borderRadius: 99, background: brand.gradient }} />
+                          </div>
+                          <div style={{ fontSize: 11, color: positive ? "#4ade80" : "#f87171" }}>
+                            {positive ? "Surplus" : "Gap"}: {fmtS(Math.abs(brand.gap))}
+                          </div>
                         </div>
-                        <div>
-                          <div style={{ fontSize: 10, color: "#64748b", marginBottom: 2 }}>REALISASI OMZET</div>
-                          <div style={{ fontSize: 14, fontWeight: 800, color: brand.color }}>{fmtS(brand.real)}</div>
-                        </div>
-                      </div>
-                      <div style={{ height: 7, borderRadius: 99, background: "#1e293b", overflow: "hidden", marginBottom: 8 }}>
-                        <div style={{ height: "100%", width: `${progress}%`, borderRadius: 99, background: brand.gradient }} />
-                      </div>
-                      <div style={{ fontSize: 11, color: positive ? "#4ade80" : "#f87171" }}>
-                        {positive ? "Surplus" : "Gap"}: {fmtS(Math.abs(brand.gap))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+                      );
+                    })}
+                  </div>
+                </div>
 
-            <div style={{ ...S.card, overflowX: "auto", padding: 8 }}>
-              <table style={{ borderCollapse: "collapse", width: "100%" }}>
-                <thead><tr>
-                  {["Bulan", "Target", "Realisasi", "Gap", "Ach %", "Tier Emas", "Tier Perak", "Budget", "Cair 70%", "Pool Q", "Pool Annual", "Status", "BE"].map(h => <th key={h} style={S.th}>{h}</th>)}
-                </tr></thead>
-                <tbody>
-                  {episRows.map((r, mi) => {
-                    const st = statusOf(r.ach, r.hasInput);
-                    return (
-                      <tr key={mi}>
-                        <td style={{ ...S.td, fontWeight: 700 }}>{MONTHS[mi]}</td>
-                        <td style={S.td}>{fmtS(r.target)}</td>
-                        <td style={S.td}>{r.hasInput ? fmtS(r.real) : "-"}</td>
-                        <td style={{ ...S.td, color: r.real - r.target >= 0 ? "#4ade80" : "#f87171" }}>{r.hasInput ? fmtS(r.real - r.target) : "-"}</td>
-                        <td style={{ ...S.td, fontWeight: 700, color: st.c }}>{r.hasInput ? pct(r.ach) : "-"}</td>
-                        <td style={S.td}>{r.hasInput ? r.emasTier.name : "-"}</td>
-                        <td style={S.td}>{r.hasInput ? r.perakTier.name : "-"}</td>
-                        <td style={{ ...S.td, color: "#d4af37", fontWeight: 600 }}>{r.totalReward > 0 ? fmt(r.totalReward) : "-"}</td>
-                        <td style={{ ...S.td, color: "#4ade80", fontWeight: 600 }}>{r.monthlyReward > 0 ? fmt(r.monthlyReward) : "-"}</td>
-                        <td style={S.td}>{r.quarterlyPool > 0 ? fmt(r.quarterlyPool) : "-"}</td>
-                        <td style={S.td}>{r.annualPool > 0 ? fmt(r.annualPool) : "-"}</td>
-                        <td style={S.td}><span style={S.badge(st)}>{st.t}</span></td>
-                        <td style={{ ...S.td, fontSize: 11, color: "#94a3b8" }}>{r.be || "-"}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-            </>
+                <div style={{ ...S.card, overflowX: "auto", padding: 8 }}>
+                  <table style={{ borderCollapse: "collapse", width: "100%" }}>
+                    <thead><tr>
+                      {["Bulan", "Target", "Realisasi", "Gap", "Ach %", "Tier Emas", "Tier Perak", "Budget", "Cair 70%", "Pool Q", "Pool Annual", "Status", "BE"].map(h => <th key={h} style={S.th}>{h}</th>)}
+                    </tr></thead>
+                    <tbody>
+                      {episRows.map((r, mi) => {
+                        const st = statusOf(r.ach, r.hasInput);
+                        return (
+                          <tr key={mi}>
+                            <td style={{ ...S.td, fontWeight: 700 }}>{MONTHS[mi]}</td>
+                            <td style={S.td}>{fmtS(r.target)}</td>
+                            <td style={S.td}>{r.hasInput ? fmtS(r.real) : "-"}</td>
+                            <td style={{ ...S.td, color: r.real - r.target >= 0 ? "#4ade80" : "#f87171" }}>{r.hasInput ? fmtS(r.real - r.target) : "-"}</td>
+                            <td style={{ ...S.td, fontWeight: 700, color: st.c }}>{r.hasInput ? pct(r.ach) : "-"}</td>
+                            <td style={S.td}>{r.hasInput ? r.emasTier.name : "-"}</td>
+                            <td style={S.td}>{r.hasInput ? r.perakTier.name : "-"}</td>
+                            <td style={{ ...S.td, color: "#d4af37", fontWeight: 600 }}>{r.totalReward > 0 ? fmt(r.totalReward) : "-"}</td>
+                            <td style={{ ...S.td, color: "#4ade80", fontWeight: 600 }}>{r.monthlyReward > 0 ? fmt(r.monthlyReward) : "-"}</td>
+                            <td style={S.td}>{r.quarterlyPool > 0 ? fmt(r.quarterlyPool) : "-"}</td>
+                            <td style={S.td}>{r.annualPool > 0 ? fmt(r.annualPool) : "-"}</td>
+                            <td style={S.td}><span style={S.badge(st)}>{st.t}</span></td>
+                            <td style={{ ...S.td, fontSize: 11, color: "#94a3b8" }}>{r.be || "-"}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </div>
         )}
@@ -1491,15 +1514,16 @@ export default function App() {
                     {accessibleStoreCodes.map((i) => {
                       const s = STORES[i];
                       return (
-                      <tr key={i}>
-                        <td style={{ ...S.td, fontWeight: 700 }}>{s.n}</td>
-                        <td style={{ ...S.td, fontSize: 10, color: "#94a3b8" }}>{s.seg}</td>
-                        <td style={S.td}>{fmtS(s.g)}</td>
-                        <td style={S.td}>{fmtS(s.m)}</td>
-                        <td style={S.td}>{fmtS(s.s)}</td>
-                        <td style={{ ...S.td, fontWeight: 700 }}>{fmtS(s.g + s.m + s.s)}</td>
-                      </tr>
-                    )})}
+                        <tr key={i}>
+                          <td style={{ ...S.td, fontWeight: 700 }}>{s.n}</td>
+                          <td style={{ ...S.td, fontSize: 10, color: "#94a3b8" }}>{s.seg}</td>
+                          <td style={S.td}>{fmtS(s.g)}</td>
+                          <td style={S.td}>{fmtS(s.m)}</td>
+                          <td style={S.td}>{fmtS(s.s)}</td>
+                          <td style={{ ...S.td, fontWeight: 700 }}>{fmtS(s.g + s.m + s.s)}</td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>

@@ -371,7 +371,7 @@ export default function App() {
       setLoginErr("");
       setPinInput("");
       setShowWelcomeBanner(true);
-      setTimeout(() => setShowWelcomeBanner(false), 3000);
+      setTimeout(() => setShowWelcomeBanner(false), 5000);
 
       if (nextSession.role === "admin") await loadUsers();
     } catch (error) {

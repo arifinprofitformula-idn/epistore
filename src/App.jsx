@@ -280,6 +280,7 @@ export default function App() {
   const [pinInput, setPinInput] = useState("");
   const [session, setSession] = useState(null); // { role: 'admin'|'be', name }
   const [loginErr, setLoginErr] = useState("");
+  const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
 
   // Input form state
   const [fStore, setFStore] = useState(0);
@@ -369,6 +370,8 @@ export default function App() {
       setTab(nextSession.role === "be" ? "input" : "dash");
       setLoginErr("");
       setPinInput("");
+      setShowWelcomeBanner(true);
+      setTimeout(() => setShowWelcomeBanner(false), 3000);
 
       if (nextSession.role === "admin") await loadUsers();
     } catch (error) {
@@ -385,6 +388,7 @@ export default function App() {
     setSession(null);
     setTab("login");
     setPinInput("");
+    setShowWelcomeBanner(false);
     setUsers([]);
   };
 
@@ -807,6 +811,15 @@ export default function App() {
 
   return (
     <div style={S.wrap}>
+      {showWelcomeBanner && (
+        <div className="welcome-banner" role="status" aria-live="polite">
+          <span className="welcome-banner-icon" aria-hidden="true">🏆</span>
+          <span>
+            Selamat Datang di Halaman Dashboard EPI Store, Tingkatkan Transaksinya dan Raih Reward Anda
+          </span>
+          <span className="welcome-banner-spark" aria-hidden="true">✨</span>
+        </div>
+      )}
       <div style={S.headerShell}>
         <div style={S.header}>
           <div style={S.headerBrand}>

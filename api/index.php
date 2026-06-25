@@ -12,6 +12,7 @@ $path = preg_replace('#^/api#', '', (string) $path) ?: '/';
 
 try {
     if ($method === 'POST' && $path === '/install') {
+        require_install_enabled();
         install_application();
     }
 
@@ -177,6 +178,7 @@ function install_application(): never
         );
 
         $pdo->commit();
+        lock_install();
         json_response([
             'message' => 'Database berhasil diinisialisasi.',
             'stores' => count($master['stores']),
@@ -191,7 +193,20 @@ function install_application(): never
 function login(): never
 {
     $pin = trim((string) (request_body()['pin'] ?? ''));
+    $ip = get_client_ip();
+    $fingerprint = pin_fingerprint($pin);
+    $attempt = get_login_attempt($ip, $fingerprint);
+
+    if ($attempt['locked_until'] !== null && new DateTime($attempt['locked_until']) > new DateTime()) {
+        json_response(['message' => 'Terlalu banyak percobaan login. Coba lagi nanti.'], 429);
+    }
+
     if (!valid_pin($pin)) {
+        $nextAttempts = min($attempt['attempts'] + 1, 255);
+        $lockedUntil = $nextAttempts >= LOGIN_FAILURE_LIMIT
+            ? (new DateTime())->modify('+' . LOGIN_LOCK_MINUTES . ' minutes')->format('Y-m-d H:i:s')
+            : null;
+        update_login_attempt($ip, $fingerprint, $nextAttempts, $lockedUntil);
         json_response(['message' => 'PIN tidak valid. Coba lagi.'], 401);
     }
 
@@ -199,6 +214,27 @@ function login(): never
         'SELECT id, pin_hash FROM users WHERE is_active = TRUE ORDER BY id'
     )->fetchAll();
     $matchedId = null;
+    foreach ($users as $candidate) {
+        if (password_verify($pin, $candidate['pin_hash'])) {
+            $matchedId = (int) $candidate['id'];
+            break;
+        }
+    }
+    if ($matchedId === null) {
+        $nextAttempts = min($attempt['attempts'] + 1, 255);
+        $lockedUntil = $nextAttempts >= LOGIN_FAILURE_LIMIT
+            ? (new DateTime())->modify('+' . LOGIN_LOCK_MINUTES . ' minutes')->format('Y-m-d H:i:s')
+            : null;
+        update_login_attempt($ip, $fingerprint, $nextAttempts, $lockedUntil);
+        json_response(['message' => 'PIN tidak valid. Coba lagi.'], 401);
+    }
+
+    reset_login_attempts($ip, $fingerprint);
+    start_secure_session();
+    session_regenerate_id(true);
+    $_SESSION['user_id'] = $matchedId;
+    json_response(['session' => session_user()]);
+}
     foreach ($users as $candidate) {
         if (password_verify($pin, $candidate['pin_hash'])) {
             $matchedId = (int) $candidate['id'];

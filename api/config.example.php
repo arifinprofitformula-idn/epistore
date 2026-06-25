@@ -10,8 +10,9 @@ return [
     ],
     'app' => [
         'install_key' => 'ganti-dengan-kunci-instalasi-random',
-        'default_admin_pin' => '9999',
-        'default_be_pin' => '1234',
+        'install_enabled' => true,
+        'default_admin_pin' => '839201',
+        'default_be_pin' => '583904',
         'secure_cookie' => true,
     ],
 ];

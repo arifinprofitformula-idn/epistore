@@ -3,6 +3,9 @@
 declare(strict_types=1);
 
 const APP_YEAR = 2026;
+const LOGIN_FAILURE_LIMIT = 5;
+const LOGIN_LOCK_MINUTES = 15;
+const INSTALL_LOCK_FILE = __DIR__ . '/install.lock';
 
 function json_response(mixed $data, int $status = 200): never
 {
@@ -14,6 +17,7 @@ function json_response(mixed $data, int $status = 200): never
 
 function request_body(): array
 {
+    ensure_same_origin_request();
     $raw = file_get_contents('php://input');
     if ($raw === false || $raw === '') {
         return [];
@@ -254,7 +258,109 @@ function require_writer(array $user): void
 
 function valid_pin(string $pin): bool
 {
-    return preg_match('/^\d{4,6}$/', $pin) === 1;
+    return preg_match('/^\d{6}$/', $pin) === 1;
+}
+
+function get_client_ip(): string
+{
+    if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+        $parts = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
+        return trim($parts[0]);
+    }
+    return $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
+}
+
+function pin_fingerprint(string $pin): string
+{
+    return hash('sha256', $pin);
+}
+
+function get_login_attempt(string $ip, string $fingerprint): array
+{
+    $statement = db()->prepare(
+        'SELECT attempts, last_attempt_at, locked_until
+         FROM login_attempts
+         WHERE ip_address = ? AND pin_fingerprint = ?'
+    );
+    $statement->execute([$ip, $fingerprint]);
+    $attempt = $statement->fetch();
+    if (!$attempt) {
+        return ['attempts' => 0, 'last_attempt_at' => null, 'locked_until' => null];
+    }
+    return $attempt;
+}
+
+function update_login_attempt(string $ip, string $fingerprint, int $attempts, ?string $lockedUntil): void
+{
+    db()->prepare(
+        'INSERT INTO login_attempts
+         (ip_address, pin_fingerprint, attempts, last_attempt_at, locked_until)
+         VALUES (?, ?, ?, NOW(), ?)
+         ON DUPLICATE KEY UPDATE
+           attempts = VALUES(attempts),
+           last_attempt_at = VALUES(last_attempt_at),
+           locked_until = VALUES(locked_until)'
+    )->execute([$ip, $fingerprint, $attempts, $lockedUntil]);
+}
+
+function reset_login_attempts(string $ip, string $fingerprint): void
+{
+    db()->prepare(
+        'DELETE FROM login_attempts
+         WHERE ip_address = ? AND pin_fingerprint = ?'
+    )->execute([$ip, $fingerprint]);
+}
+
+function ensure_same_origin_request(): void
+{
+    $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+    if (!in_array($method, ['POST', 'PUT', 'PATCH'], true)) {
+        return;
+    }
+
+    $origin = $_SERVER['HTTP_ORIGIN'] ?? null;
+    if ($origin === null && !empty($_SERVER['HTTP_REFERER'])) {
+        $referer = $_SERVER['HTTP_REFERER'];
+        $parsed = parse_url($referer);
+        if ($parsed === false || empty($parsed['scheme']) || empty($parsed['host'])) {
+            json_response(['message' => 'Permintaan tidak valid.'], 403);
+        }
+        $origin = $parsed['scheme'] . '://' . $parsed['host'];
+        if (!empty($parsed['port'])) {
+            $origin .= ':' . $parsed['port'];
+        }
+    }
+
+    if ($origin === null) {
+        return;
+    }
+
+    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $host = $_SERVER['HTTP_HOST'] ?? ($_SERVER['SERVER_NAME'] ?? '');
+    $currentOrigin = $scheme . '://' . $host;
+    if ($origin !== $currentOrigin) {
+        json_response(['message' => 'Permintaan tidak valid.'], 403);
+    }
+}
+
+function install_enabled(): bool
+{
+    if (is_file(INSTALL_LOCK_FILE)) {
+        return false;
+    }
+    return (bool) (app_config()['app']['install_enabled'] ?? false);
+}
+
+function lock_install(): void
+{
+    file_put_contents(INSTALL_LOCK_FILE, (string) time());
+}
+
+function require_install_enabled(): void
+{
+    if (!install_enabled()) {
+        json_response(['message' => 'Endpoint instalasi tidak tersedia.'], 404);
+    }
 }
 
 function normalize_brand_codes(mixed $values): array

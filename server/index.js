@@ -7,6 +7,7 @@ import MySQLStoreFactory from "express-mysql-session";
 import helmet from "helmet";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { createHash } from "node:crypto";
 import {
   dbConfig,
   getSessionUser,
@@ -32,7 +33,26 @@ const sessionStore = new MySQLStore(
 );
 
 app.set("trust proxy", 1);
-app.use(helmet({ contentSecurityPolicy: false }));
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:"],
+      fontSrc: ["'self'"],
+      connectSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      baseUri: ["'self'"],
+      frameAncestors: ["'self'"],
+    },
+  },
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true,
+  },
+}));
 app.use(compression());
 app.use(express.json({ limit: "5mb" }));
 app.use(
@@ -51,6 +71,72 @@ app.use(
   }),
 );
 
+const getRequestOrigin = (req) => {
+  const origin = req.get("origin");
+  if (origin) return origin;
+  const referer = req.get("referer");
+  if (!referer) return null;
+  try {
+    return new URL(referer).origin;
+  } catch {
+    return null;
+  }
+};
+
+const validateSameOrigin = (req, res, next) => {
+  if (!["POST", "PUT", "PATCH"].includes(req.method)) {
+    return next();
+  }
+
+  const origin = getRequestOrigin(req);
+  if (!origin) {
+    return next();
+  }
+
+  const expected = `${req.protocol}://${req.get("host")}`;
+  if (origin !== expected) {
+    return res.status(403).json({ message: "Permintaan tidak valid." });
+  }
+  next();
+};
+
+const loginFingerprint = (pin) => createHash("sha256").update(pin).digest("hex");
+
+const findLoginAttempt = async (ip, fingerprint) => {
+  const [[attempt]] = await pool.query(
+    `SELECT attempts, locked_until AS lockedUntil
+     FROM login_attempts
+     WHERE ip_address = ? AND pin_fingerprint = ?`,
+    [ip, fingerprint],
+  );
+  return attempt || { attempts: 0, lockedUntil: null };
+};
+
+const saveLoginAttempt = async (ip, fingerprint, attempts, lockedUntil) => {
+  await pool.query(
+    `INSERT INTO login_attempts
+      (ip_address, pin_fingerprint, attempts, last_attempt_at, locked_until)
+     VALUES (?, ?, ?, NOW(), ?)
+     ON DUPLICATE KEY UPDATE
+       attempts = VALUES(attempts),
+       last_attempt_at = VALUES(last_attempt_at),
+       locked_until = VALUES(locked_until)`,
+    [ip, fingerprint, attempts, lockedUntil],
+  );
+};
+
+const resetLoginAttempt = async (ip, fingerprint) => {
+  await pool.query(
+    `DELETE FROM login_attempts WHERE ip_address = ? AND pin_fingerprint = ?`,
+    [ip, fingerprint],
+  );
+};
+
+const LOGIN_FAILURE_LIMIT = 5;
+const LOGIN_LOCK_MINUTES = 15;
+
+app.use(validateSameOrigin);
+
 const requireAuth = async (req, res, next) => {
   try {
     if (!req.session.userId) {
@@ -58,7 +144,7 @@ const requireAuth = async (req, res, next) => {
     }
     const user = await getSessionUser(req.session.userId);
     if (!user) {
-      req.session.destroy(() => {});
+      req.session.destroy(() => { });
       return res.status(401).json({ message: "Akun tidak aktif atau tidak ditemukan." });
     }
     req.user = user;
@@ -82,7 +168,7 @@ const requireWriter = (req, res, next) => {
   next();
 };
 
-const isValidPin = (pin) => /^\d{4,6}$/.test(pin);
+const isValidPin = (pin) => /^\d{6}$/.test(pin);
 const normalizeAmount = (value) => {
   const amount = Number(value);
   return Number.isSafeInteger(amount) && amount >= 0 ? amount : null;
@@ -129,7 +215,20 @@ app.get("/api/session", async (req, res, next) => {
 app.post("/api/login", async (req, res, next) => {
   try {
     const pin = String(req.body.pin || "").trim();
+    const ip = req.ip;
+    const fingerprint = loginFingerprint(pin);
+    const attempt = await findLoginAttempt(ip, fingerprint);
+
+    if (attempt.lockedUntil && new Date(attempt.lockedUntil) > new Date()) {
+      return res.status(429).json({ message: "Terlalu banyak percobaan login. Coba lagi nanti." });
+    }
+
     if (!isValidPin(pin)) {
+      const nextAttempts = Math.min(attempt.attempts + 1, 255);
+      const lockedUntil = nextAttempts >= LOGIN_FAILURE_LIMIT
+        ? new Date(Date.now() + LOGIN_LOCK_MINUTES * 60000).toISOString().slice(0, 19).replace('T', ' ')
+        : null;
+      await saveLoginAttempt(ip, fingerprint, nextAttempts, lockedUntil);
       return res.status(401).json({ message: "PIN tidak valid. Coba lagi." });
     }
 
@@ -145,6 +244,11 @@ app.post("/api/login", async (req, res, next) => {
     }
 
     if (!matchedUser) {
+      const nextAttempts = Math.min(attempt.attempts + 1, 255);
+      const lockedUntil = nextAttempts >= LOGIN_FAILURE_LIMIT
+        ? new Date(Date.now() + LOGIN_LOCK_MINUTES * 60000).toISOString().slice(0, 19).replace('T', ' ')
+        : null;
+      await saveLoginAttempt(ip, fingerprint, nextAttempts, lockedUntil);
       return res.status(401).json({ message: "PIN tidak valid. Coba lagi." });
     }
 
@@ -152,6 +256,7 @@ app.post("/api/login", async (req, res, next) => {
       req.session.regenerate((error) => (error ? reject(error) : resolve()));
     });
     req.session.userId = matchedUser.id;
+    await resetLoginAttempt(ip, fingerprint);
     const user = await getSessionUser(matchedUser.id);
     res.json({ session: user });
   } catch (error) {
@@ -577,6 +682,10 @@ if (isProduction) {
 
 app.use((error, _req, res, _next) => {
   console.error(error);
+  if (isProduction) {
+    res.status(500).json({ message: "Terjadi kesalahan pada server." });
+    return;
+  }
   res.status(500).json({ message: error.message || "Terjadi kesalahan pada server." });
 });
 

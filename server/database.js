@@ -2,6 +2,7 @@ import "dotenv/config";
 import bcrypt from "bcryptjs";
 import mysql from "mysql2/promise";
 import { readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 
 const databaseName = process.env.DB_NAME || "dashboard_epis";
 const autoCreateDatabase = process.env.DB_AUTO_CREATE !== "false";
@@ -74,6 +75,18 @@ export async function initializeDatabase() {
       brand_code ENUM('goldgram', 'meezan_gold', 'silvergram') NOT NULL,
       PRIMARY KEY (user_id, brand_code),
       CONSTRAINT fk_user_brands_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS login_attempts (
+      id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+      ip_address VARCHAR(45) NOT NULL,
+      pin_fingerprint CHAR(64) NOT NULL,
+      attempts SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+      last_attempt_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      locked_until TIMESTAMP NULL,
+      UNIQUE KEY uq_login_attempts_ip_pin (ip_address, pin_fingerprint)
     ) ENGINE=InnoDB
   `);
 
@@ -152,8 +165,8 @@ async function seedDatabase() {
     const [[userCount]] = await connection.query("SELECT COUNT(*) AS total FROM users");
     let adminId;
     if (userCount.total === 0) {
-      const adminHash = await bcrypt.hash(process.env.DEFAULT_ADMIN_PIN || "9999", 12);
-      const demoHash = await bcrypt.hash(process.env.DEFAULT_BE_PIN || "1234", 12);
+      const adminHash = await bcrypt.hash(process.env.DEFAULT_ADMIN_PIN || "123456", 12);
+      const demoHash = await bcrypt.hash(process.env.DEFAULT_BE_PIN || "654321", 12);
       const [adminResult] = await connection.query(
         "INSERT INTO users (name, role, pin_hash) VALUES (?, 'admin', ?)",
         ["Admin", adminHash],

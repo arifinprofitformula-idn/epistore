@@ -275,8 +275,32 @@ function pin_fingerprint(string $pin): string
     return hash('sha256', $pin);
 }
 
+function ensure_login_attempts_schema(): void
+{
+    static $ready = false;
+    if ($ready) {
+        return;
+    }
+
+    db()->exec(
+        "CREATE TABLE IF NOT EXISTS login_attempts (
+           id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+           ip_address VARCHAR(45) NOT NULL,
+           pin_fingerprint CHAR(64) NOT NULL,
+           attempts SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+           last_attempt_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+           locked_until TIMESTAMP NULL,
+           UNIQUE KEY uq_php_login_attempts_ip_pin (ip_address, pin_fingerprint)
+         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+    );
+
+    $ready = true;
+}
+
 function get_login_attempt(string $ip, string $fingerprint): array
 {
+    ensure_login_attempts_schema();
+
     $statement = db()->prepare(
         'SELECT attempts, last_attempt_at, locked_until
          FROM login_attempts
@@ -292,6 +316,8 @@ function get_login_attempt(string $ip, string $fingerprint): array
 
 function update_login_attempt(string $ip, string $fingerprint, int $attempts, ?string $lockedUntil): void
 {
+    ensure_login_attempts_schema();
+
     db()->prepare(
         'INSERT INTO login_attempts
          (ip_address, pin_fingerprint, attempts, last_attempt_at, locked_until)
@@ -305,6 +331,8 @@ function update_login_attempt(string $ip, string $fingerprint, int $attempts, ?s
 
 function reset_login_attempts(string $ip, string $fingerprint): void
 {
+    ensure_login_attempts_schema();
+
     db()->prepare(
         'DELETE FROM login_attempts
          WHERE ip_address = ? AND pin_fingerprint = ?'

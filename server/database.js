@@ -19,16 +19,24 @@ export const dbConfig = {
 };
 
 if (autoCreateDatabase) {
-  const bootstrapConnection = await mysql.createConnection({
-    host: dbConfig.host,
-    port: dbConfig.port,
-    user: dbConfig.user,
-    password: dbConfig.password,
-  });
-  await bootstrapConnection.query(
-    `CREATE DATABASE IF NOT EXISTS \`${databaseName}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`,
-  );
-  await bootstrapConnection.end();
+  try {
+    const bootstrapConnection = await mysql.createConnection({
+      host: dbConfig.host,
+      port: dbConfig.port,
+      user: dbConfig.user,
+      password: dbConfig.password,
+    });
+    await bootstrapConnection.query(
+      `CREATE DATABASE IF NOT EXISTS \`${databaseName}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`,
+    );
+    await bootstrapConnection.end();
+  } catch (error) {
+    throw new Error(
+      `Tidak dapat terhubung ke database MySQL di ${dbConfig.host}:${dbConfig.port}. ` +
+      "Pastikan MySQL berjalan dan konfigurasi DB_HOST/DB_PORT/DB_USER/DB_PASSWORD benar. " +
+      error.message,
+    );
+  }
 }
 
 export const pool = mysql.createPool({

@@ -134,8 +134,23 @@ const api = async (url, options = {}) => {
     headers: { "Content-Type": "application/json", ...options.headers },
     ...options,
   });
-  const payload = response.status === 204 ? null : await response.json();
-  if (!response.ok) throw new Error(payload?.message || "Permintaan gagal.");
+
+  let payload = null;
+  if (response.status !== 204) {
+    const text = await response.text();
+    if (text.trim().length > 0) {
+      try {
+        payload = JSON.parse(text);
+      } catch (error) {
+        throw new Error(`Respon server tidak valid (${response.status}).`);
+      }
+    }
+  }
+
+  if (!response.ok) {
+    throw new Error(payload?.message || response.statusText || "Permintaan gagal.");
+  }
+
   return payload;
 };
 

@@ -235,21 +235,6 @@ function login(): never
     $_SESSION['user_id'] = $matchedId;
     json_response(['session' => session_user()]);
 }
-    foreach ($users as $candidate) {
-        if (password_verify($pin, $candidate['pin_hash'])) {
-            $matchedId = (int) $candidate['id'];
-            break;
-        }
-    }
-    if ($matchedId === null) {
-        json_response(['message' => 'PIN tidak valid. Coba lagi.'], 401);
-    }
-
-    start_secure_session();
-    session_regenerate_id(true);
-    $_SESSION['user_id'] = $matchedId;
-    json_response(['session' => session_user()]);
-}
 
 function bootstrap_data(array $user): never
 {
